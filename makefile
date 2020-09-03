@@ -1,7 +1,7 @@
 GO_GET=go get
 GO_INSTALL=go install
 GO_CLEAN=go clean
-EXENAME=actapp
+EXENAME=atcapp
 BUILDPATH=$(CURDIR)
 export GOPATH=$(CURDIR)
 
