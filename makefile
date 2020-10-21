@@ -1,6 +1,4 @@
-GO_GET=go get
-GO_INSTALL=go install
-GO_CLEAN=go clean
+MAINPACKAGE=main
 EXENAME=atcapp
 BUILDPATH=$(CURDIR)
 export GOPATH=$(CURDIR)
@@ -15,12 +13,11 @@ makedir :
 
 build :
 	@echo "building...."
-	$(GO_INSTALL) $(EXENAME)
-	@echo "Done!"
+	@go build -o $(BUILDPATH)/bin/$(EXENAME) $(MAINPACKAGE)
 
 get :
 	@echo "download 3rd party packages...."
-	@$(GO_GET) github.com/gorilla/mux 
+	@go get github.com/gorilla/mux github.com/google/go-github/github
 
 all : makedir get build
 
