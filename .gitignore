@@ -2,6 +2,7 @@
 bin/
 pkg/
 src/github.com/
+src/golang.org/
 **/*.out
 **/.env
 **/coverage.txt
