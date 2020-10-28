@@ -3,8 +3,6 @@ EXENAME=atcapp
 BUILDPATH=$(CURDIR)
 export GOPATH=$(CURDIR)
 
-.PHONY: all clean build test
-
 default : all
 
 makedir :
@@ -26,10 +24,3 @@ clean :
 	@rm -rf $(BUILDPATH)/bin/$(EXENAME)
 	@rm -rf $(BUILDPATH)/pkg
 	@rm -rf $(BUILDPATH)/bin
-
-test :
-	go test -race -coverprofile=coverage.txt -covermode=atomic ./src/apiserver
-
-cover :
-	go test ./src/apiserver -v -coverprofile=apiserver.out
-	go tool cover -html=apiserver.out
