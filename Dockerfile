@@ -18,4 +18,9 @@ RUN chown -R atcuser:atcuser /server
 
 USER atcuser
 
+RUN mkdir /assets
+ENV ATC_PEM_PATH=/assets/github.pem
+ENV ATC_CLIENT_ID=Iv1.afc8bdf21842ddc4
+ENV ATC_APP_ID=79517
+
 ENTRYPOINT ["/server/atcapp"]

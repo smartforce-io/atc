@@ -15,7 +15,7 @@ build :
 
 get :
 	@echo "download 3rd party packages...."
-	@go get github.com/gorilla/mux github.com/google/go-github/github
+	@go get github.com/gorilla/mux github.com/google/go-github/github github.com/dgrijalva/jwt-go golang.org/x/oauth2
 
 all : makedir get build
 
