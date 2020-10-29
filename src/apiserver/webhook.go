@@ -11,6 +11,11 @@ import (
 
 type Webhook struct {
 	Action string `json:"action"`
+	Installation Installation `json:"installation"`
+}
+
+type Installation struct {
+	Id int64 `json:"id"`
 }
 
 func (api *ActApiServer) webhook(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +43,7 @@ func (api *ActApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("emptyAction error: %v", err)
 		} else {
-			go githubservice.PushAction(push)
+			go githubservice.PushAction(push, wh.Installation.Id)
 		}
 	}
 	w.WriteHeader(http.StatusNotFound)

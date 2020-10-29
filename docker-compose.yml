@@ -5,3 +5,5 @@ services:
       context: .
     ports:
     - "8080:8080"
+    volumes:
+        - /assets/github.pem:<path to Github .pem file>/github.pem
