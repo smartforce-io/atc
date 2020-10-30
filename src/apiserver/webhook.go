@@ -30,13 +30,13 @@ func (api *ActApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 
 	switch wh.Action {
 	case "created":
-		w.Write([]byte("Hello from Automated Tag Creator!"))
 		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Hello from Automated Tag Creator!"))
 		return
 
 	case "deleted":
-		w.Write([]byte("Bye-bye! Automated Tag Creator will be waiting you again!"))
 		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Bye-bye! Automated Tag Creator will be waiting you again!"))
 		return
 	case "":
 		push, err := emptyAction(body)
@@ -45,6 +45,8 @@ func (api *ActApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 		} else {
 			go githubservice.PushAction(push, wh.Installation.Id)
 		}
+		w.WriteHeader(http.StatusOK)
+		return
 	}
 	w.WriteHeader(http.StatusNotFound)
 	w.Write([]byte("This webhook is undefined yet."))
