@@ -1,5 +1,5 @@
 FROM golang:alpine as gobuilder
-RUN apk add --update make
+RUN apk add --update make git
 ADD . /atc/
 WORKDIR /atc/
 ENV GOPATH=$GOPATH:/atc
