@@ -23,4 +23,5 @@ func (api *ActApiServer) Start(host string) {
 		log.Println("Listening HTTP for", host)
 		log.Fatal(http.ListenAndServe(host, api.router))
 	}
+	log.Print("ACT API Server didn't run!")
 }
