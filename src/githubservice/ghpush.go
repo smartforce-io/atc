@@ -80,7 +80,7 @@ func PushAction(push *github.WebHookPayload, id int64) {
 			return
 		}
 
-		cmnt := "Comment for " + newVersion
+		cmnt := "Added a new version: " + newVersion
 		_, _, err = client.Repositories.CreateComment(context.Background(), owner, repo, sha, &github.RepositoryComment{
 			Body:      &cmnt,
 		})
