@@ -2,8 +2,12 @@ package githubservice
 
 import (
 	"context"
+	"envvars"
 	"errors"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 )
 
 var (
@@ -11,7 +15,21 @@ var (
 )
 
 func getAccessToken(id int64) (string, error) {
-	jwt, err := getJwt()
+	var pemData []byte
+	var err error
+	pemEnv := os.Getenv(envvars.PemData)
+	if pemEnv == "" {
+		pemPath := os.Getenv(envvars.PemPathVariable)
+		if pemPath == "" { return "", errNoPemEnv}
+		pemData, err = ioutil.ReadFile(pemPath)
+		if err != nil { return "", err }
+		log.Printf("ATC uses pem from file: %q", pemPath)
+	} else {
+		pemData = []byte(pemEnv)
+		log.Print("ATC uses pem data from environment variable")
+	}
+
+	jwt, err := getJwt(pemData)
 	if err != nil {
 		return "", err
 	}

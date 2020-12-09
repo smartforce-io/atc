@@ -6,7 +6,6 @@ import (
 	"envvars"
 	"errors"
 	jwt "github.com/dgrijalva/jwt-go"
-	"io/ioutil"
 	"os"
 	"time"
 )
@@ -16,11 +15,7 @@ var (
 	errNoPem = errors.New("no .pem file")
 )
 
-func getJwt() (string, error) {
-	pemPath := os.Getenv(envvars.PemPathVariable)
-	if pemPath == "" { return "", errNoPemEnv}
-	pemData, err := ioutil.ReadFile(pemPath)
-	if err != nil { return "", err }
+func getJwt(pemData []byte) (string, error) {
 	block, _ := pem.Decode(pemData)
 	if block == nil { return "", errNoPem }
 	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)

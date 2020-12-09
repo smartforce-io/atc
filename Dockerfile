@@ -6,6 +6,9 @@ ENV GOPATH=$GOPATH:/atc
 RUN make all
 
 FROM alpine
+
+ARG GH_PEM_DATA
+
 EXPOSE 8080
 
 RUN mkdir /server
@@ -21,7 +24,7 @@ RUN mkdir /assets
 USER atcuser
 
 ENV ATC_PEM_PATH=/assets/github.pem
-ENV ATC_CLIENT_ID=Iv1.afc8bdf21842ddc4
 ENV ATC_APP_ID=79517
+ENV ATC_PEM_DATA=${GH_PEM_DATA}
 
 ENTRYPOINT ["/server/atcapp"]
