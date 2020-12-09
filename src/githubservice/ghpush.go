@@ -53,7 +53,7 @@ func PushAction(push *github.WebHookPayload, id int64) {
 	newVersion,_ := getVersionFromPomXml(newContent)
 
 	if newVersion != oldVersion {
-		log.Printf("There is a new version! Old version: %q, new version: %q", oldVersion, newVersion)
+		log.Printf("There is a new version for %q! Old version: %q, new version: %q", push.GetRepo().GetFullName(), oldVersion, newVersion)
 
 		caption := "v"+newVersion
 		sha := push.GetAfter()
