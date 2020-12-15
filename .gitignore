@@ -7,3 +7,4 @@ src/golang.org/
 **/*.out
 **/.env
 **/coverage.txt
+src/gopkg.in/
