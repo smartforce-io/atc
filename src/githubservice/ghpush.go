@@ -21,20 +21,26 @@ func getVersionFromPomXml(content string) (string, error) {
 }
 
 func PushAction(push *github.WebHookPayload) {
-	const versionSource = "pom.xml"
 	id := *push.Installation.ID
 
 	token, err := getAccessToken(id)
 	if err != nil {
 		log.Printf("getAccessToken Error: %v", err)
+		return
 	}
-	ctx := context.Background()
-	client := getGithubClient( token, ctx)
 	owner := push.GetRepo().GetOwner().GetName()
 	repo := push.GetRepo().GetName()
 	fullname := push.GetRepo().GetFullName()
 
-	old, _, _, err := client.Repositories.GetContents(ctx, owner, repo, versionSource, &github.RepositoryContentGetOptions{Ref: push.GetBefore()})
+	ctx := context.Background()
+	client := getGithubClient( token, ctx)
+
+	settings, err := getAtcSetting(client, owner, repo)
+	if err != nil || settings == nil {
+		settings = getDefaultAtcSettings()
+	}
+
+	old, _, _, err := client.Repositories.GetContents(ctx, owner, repo, settings.File, &github.RepositoryContentGetOptions{Ref: push.GetBefore()})
 	if err != nil {
 		log.Printf("get old content error for %q: %v", fullname, err)
 		return
@@ -42,7 +48,7 @@ func PushAction(push *github.WebHookPayload) {
 	oldContent, _ := old.GetContent()
 	oldVersion,_ := getVersionFromPomXml(oldContent)
 
-	f, _, resp, err := client.Repositories.GetContents( ctx, owner, repo, versionSource, nil)
+	f, _, resp, err := client.Repositories.GetContents( ctx, owner, repo, settings.File, nil)
 	if err != nil {
 		log.Printf("get contents error for %q: %v", fullname, err)
 		return
@@ -58,7 +64,7 @@ func PushAction(push *github.WebHookPayload) {
 	if newVersion != oldVersion {
 		log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
 
-		caption := "v"+newVersion
+		caption := settings.Prefix+newVersion
 		sha := push.GetAfter()
 		objType := "commit"
 		timestamp := time.Now()
@@ -84,11 +90,6 @@ func PushAction(push *github.WebHookPayload) {
 		}
 
 		cmnt := fmt.Sprintf("Added a new version for %q: %q", fullname, newVersion)
-		_, _, err = client.Repositories.CreateComment(context.Background(), owner, repo, sha, &github.RepositoryComment{
-			Body:      &cmnt,
-		})
-		if err != nil {
-			log.Printf("add comment error for %q: %v", fullname, err)
-		}
+		addComment(client, owner, repo, sha, cmnt)
 	}
 }

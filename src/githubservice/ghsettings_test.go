@@ -10,7 +10,7 @@ func TestUnmarshallSample(t *testing.T) {
 	prefix := "n"
 	field := "version"
 	sample := `
-fileDefault: pom.xml
+file: pom.xml
 prefix: n
 field: version
 `
