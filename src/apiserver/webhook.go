@@ -40,14 +40,13 @@ func (api *ActApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "can't parse a webhook payload", http.StatusInternalServerError)
 			return
 		}
+		if push.Installation == nil || push.Installation.ID == nil {
+			log.Printf("push webhook doesn't contain installation info: %v", push)
+			http.Error(w, "push webhook doesn't contain installation info", http.StatusBadRequest)
+			return
+		}
 		if strings.HasPrefix(push.GetRef(), "refs/heads/") {
-			wh := &Webhook{}
-			if err := json.Unmarshal(body, wh); err != nil {
-				log.Printf("webhook json.Unmarshal Error: %v", err)
-				http.Error(w, "can't parse a webhook payload for getting of installation id", http.StatusInternalServerError)
-				return
-			}
-			go githubservice.PushAction(push, wh.Installation.Id)
+			go githubservice.PushAction(push)
 		}
 		w.WriteHeader(http.StatusOK)
 		return

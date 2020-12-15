@@ -20,8 +20,9 @@ func getVersionFromPomXml(content string) (string, error) {
 	return pom.Version, nil
 }
 
-func PushAction(push *github.WebHookPayload, id int64) {
+func PushAction(push *github.WebHookPayload) {
 	const versionSource = "pom.xml"
+	id := *push.Installation.ID
 
 	token, err := getAccessToken(id)
 	if err != nil {
