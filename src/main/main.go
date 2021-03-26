@@ -12,5 +12,5 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	apiserver.Instance().Start(":"+port)
+	apiserver.Instance().Start(":" + port)
 }
