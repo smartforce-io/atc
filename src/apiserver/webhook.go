@@ -2,16 +2,17 @@ package apiserver
 
 import (
 	"encoding/json"
-	"github.com/google/go-github/github"
 	"githubservice"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/google/go-github/github"
 )
 
 type Webhook struct {
-	Action string `json:"action"`
+	Action       string       `json:"action"`
 	Installation Installation `json:"installation"`
 }
 

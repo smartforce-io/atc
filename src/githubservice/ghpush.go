@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"github.com/google/go-github/github"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/google/go-github/github"
 )
 
 type PoxXml struct {
@@ -16,7 +17,9 @@ type PoxXml struct {
 
 func getVersionFromPomXml(content string) (string, error) {
 	pom := &PoxXml{}
-	if err := xml.Unmarshal([]byte(content), pom); err != nil { return "", err }
+	if err := xml.Unmarshal([]byte(content), pom); err != nil {
+		return "", err
+	}
 	return pom.Version, nil
 }
 
@@ -33,7 +36,7 @@ func PushAction(push *github.WebHookPayload) {
 	fullname := push.GetRepo().GetFullName()
 
 	ctx := context.Background()
-	client := getGithubClient( token, ctx)
+	client := getGithubClient(token, ctx)
 
 	settings, err := getAtcSetting(client, owner, repo)
 	if err != nil || settings == nil {
@@ -46,25 +49,25 @@ func PushAction(push *github.WebHookPayload) {
 		return
 	}
 	oldContent, _ := old.GetContent()
-	oldVersion,_ := getVersionFromPomXml(oldContent)
+	oldVersion, _ := getVersionFromPomXml(oldContent)
 
-	f, _, resp, err := client.Repositories.GetContents( ctx, owner, repo, settings.File, nil)
+	f, _, resp, err := client.Repositories.GetContents(ctx, owner, repo, settings.File, nil)
 	if err != nil {
 		log.Printf("get contents error for %q: %v", fullname, err)
 		return
 	}
 
-	if resp.StatusCode !=  http.StatusOK {
+	if resp.StatusCode != http.StatusOK {
 		log.Printf("Wrong access status during getContent for installation %d for %q: %s", id, fullname, resp.Status)
 		return
 	}
 	newContent, _ := f.GetContent()
-	newVersion,_ := getVersionFromPomXml(newContent)
+	newVersion, _ := getVersionFromPomXml(newContent)
 
 	if newVersion != oldVersion {
 		log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
 
-		caption := settings.Prefix+newVersion
+		caption := settings.Prefix + newVersion
 		sha := push.GetAfter()
 		objType := "commit"
 		timestamp := time.Now()

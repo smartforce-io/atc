@@ -1,3 +1,3 @@
 package githubservice
 
-type GithubService struct {}
+type GithubService struct{}

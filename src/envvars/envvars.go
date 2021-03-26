@@ -1,7 +1,7 @@
 package envvars
 
 const (
-	PemData = "ATC_PEM_DATA"
+	PemData         = "ATC_PEM_DATA"
 	PemPathVariable = "ATC_PEM_PATH"
-	AppId = "ATC_APP_ID"
+	AppId           = "ATC_APP_ID"
 )

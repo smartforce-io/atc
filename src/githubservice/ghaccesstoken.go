@@ -20,9 +20,13 @@ func getAccessToken(id int64) (string, error) {
 	pemEnv := os.Getenv(envvars.PemData)
 	if pemEnv == "" {
 		pemPath := os.Getenv(envvars.PemPathVariable)
-		if pemPath == "" { return "", errNoPemEnv}
+		if pemPath == "" {
+			return "", errNoPemEnv
+		}
 		pemData, err = ioutil.ReadFile(pemPath)
-		if err != nil { return "", err }
+		if err != nil {
+			return "", err
+		}
 		log.Printf("ATC uses pem from file: %q", pemPath)
 	} else {
 		pemData = []byte(pemEnv)
@@ -37,8 +41,10 @@ func getAccessToken(id int64) (string, error) {
 	ctx := context.Background()
 	client := getGithubClient(jwt, ctx)
 	inst, resp, err := client.Apps.CreateInstallationToken(ctx, id, nil)
-	if err != nil { return "", err }
-	if resp.StatusCode !=  http.StatusCreated {
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusCreated {
 		return "", errWrongCreateAccessTokenStatus
 	}
 

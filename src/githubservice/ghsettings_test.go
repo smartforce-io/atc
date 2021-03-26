@@ -1,8 +1,9 @@
 package githubservice
 
 import (
-	"gopkg.in/yaml.v2"
 	"testing"
+
+	"gopkg.in/yaml.v2"
 )
 
 func TestUnmarshallSample(t *testing.T) {
@@ -19,7 +20,13 @@ field: version
 	if err := yaml.Unmarshal([]byte(sample), settings); err != nil {
 		panic(err)
 	}
-	if settings.File != file { t.Errorf("wrong settings File! Got %q, wanted %q", settings.File, file) }
-	if settings.Prefix != prefix { t.Errorf("wrong settings Prefix! Got %q, wanted %q", settings.Prefix, prefix) }
-	if settings.Field != field { t.Errorf("wrong settings Field! Got %q, wanted %q", settings.Field, field) }
+	if settings.File != file {
+		t.Errorf("wrong settings File! Got %q, wanted %q", settings.File, file)
+	}
+	if settings.Prefix != prefix {
+		t.Errorf("wrong settings Prefix! Got %q, wanted %q", settings.Prefix, prefix)
+	}
+	if settings.Field != field {
+		t.Errorf("wrong settings Field! Got %q, wanted %q", settings.Field, field)
+	}
 }
