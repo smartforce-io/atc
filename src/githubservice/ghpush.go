@@ -2,25 +2,23 @@ package githubservice
 
 import (
 	"context"
-	"encoding/xml"
 	"fmt"
 	"log"
-	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/google/go-github/github"
 )
 
-type PoxXml struct {
-	Version string `xml:"version"`
+var autoFetchers = map[string]VersionFetcher{
+	"pom.xml": pomXmlFetcher{},
 }
 
-func getVersionFromPomXml(content string) (string, error) {
-	pom := &PoxXml{}
-	if err := xml.Unmarshal([]byte(content), pom); err != nil {
-		return "", err
+func detectFetchType(path string) string {
+	if path == "" {
+		return ""
 	}
-	return pom.Version, nil
+	return filepath.Base(path)
 }
 
 func PushAction(push *github.WebHookPayload) {
@@ -34,35 +32,70 @@ func PushAction(push *github.WebHookPayload) {
 	owner := push.GetRepo().GetOwner().GetName()
 	repo := push.GetRepo().GetName()
 	fullname := push.GetRepo().GetFullName()
-
 	ctx := context.Background()
 	client := getGithubClient(token, ctx)
 
-	settings, err := getAtcSetting(client, owner, repo)
-	if err != nil || settings == nil {
-		settings = getDefaultAtcSettings()
+	ghOldContentProvider := ghContentProvider{
+		owner:    owner,
+		repo:     repo,
+		sha1:     push.GetBefore(),
+		ctx:      ctx,
+		ghClient: client,
+	}
+	ghNewContentProvider := ghContentProvider{
+		owner:    owner,
+		repo:     repo,
+		ctx:      ctx,
+		ghClient: client,
 	}
 
-	old, _, _, err := client.Repositories.GetContents(ctx, owner, repo, settings.File, &github.RepositoryContentGetOptions{Ref: push.GetBefore()})
+	settings, err := getAtcSetting(&ghNewContentProvider)
 	if err != nil {
-		log.Printf("get old content error for %q: %v", fullname, err)
-		return
-	}
-	oldContent, _ := old.GetContent()
-	oldVersion, _ := getVersionFromPomXml(oldContent)
-
-	f, _, resp, err := client.Repositories.GetContents(ctx, owner, repo, settings.File, nil)
-	if err != nil {
-		log.Printf("get contents error for %q: %v", fullname, err)
-		return
+		settings = &AtcSettings{} //blank settings
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("Wrong access status during getContent for installation %d for %q: %s", id, fullname, resp.Status)
-		return
+	newVersion := ""
+	oldVersion := ""
+	fetchType := detectFetchType(settings.Path)
+
+	if fetchType != "" {
+		var err error
+		var reqError *RequestError
+		fetcher := autoFetchers[fetchType]
+		oldVersion, _, err = fetcher.GetVersion(&ghOldContentProvider, settings.Path) //ignore http api error
+		if err != nil {
+			log.Printf("get prev version error for %q: %v", fullname, err)
+			return
+		}
+		newVersion, reqError, err = fetcher.GetVersion(&ghNewContentProvider, settings.Path)
+		if err != nil {
+			log.Printf("get version error for %q: %v", fullname, err)
+			return
+		}
+		if reqError != nil {
+			log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
+			return
+		}
+	} else {
+		fetched := false
+		for defaultPath, fetcher := range autoFetchers {
+			var err error
+			var reqError *RequestError
+			oldVersion, _, _ = fetcher.GetVersion(&ghOldContentProvider, defaultPath)
+
+			newVersion, reqError, err = fetcher.GetVersion(&ghNewContentProvider, defaultPath)
+
+			if reqError == nil && err == nil {
+				fetched = true
+				break
+			}
+		}
+		if !fetched {
+			log.Printf("Unable to fetch version using known methods!") //probably should be comment
+			return
+		}
+
 	}
-	newContent, _ := f.GetContent()
-	newVersion, _ := getVersionFromPomXml(newContent)
 
 	if newVersion != oldVersion {
 		log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
