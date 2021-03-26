@@ -27,11 +27,11 @@ func (api *ActApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 		body, _ := ioutil.ReadAll(r.Body)
 		log.Printf("markeplace purchase event: \n %s \n", body)
 
-	case "created":
+	case "create":
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("success"))
 
-	case "deleted":
+	case "delete":
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("success"))
 
