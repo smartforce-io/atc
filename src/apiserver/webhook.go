@@ -22,15 +22,18 @@ type Installation struct {
 
 func (api *ActApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 	switch event := r.Header.Get("X-GitHub-Event"); event {
-	case "created":
+	case "marketplace_purchase":
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello from Automated Tag Creator!"))
-		return
+		body, _ := ioutil.ReadAll(r.Body)
+		log.Printf("markeplace purchase event: \n %s \n", body)
 
-	case "deleted":
+	case "create":
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Bye-bye! Automated Tag Creator will be waiting you again!"))
-		return
+		w.Write([]byte("success"))
+
+	case "delete":
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("success"))
 
 	case "push":
 		body, _ := ioutil.ReadAll(r.Body)
@@ -50,8 +53,8 @@ func (api *ActApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 			go githubservice.PushAction(push)
 		}
 		w.WriteHeader(http.StatusOK)
-		return
+	default:
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("This webhook is undefined yet."))
 	}
-	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte("This webhook is undefined yet."))
 }
