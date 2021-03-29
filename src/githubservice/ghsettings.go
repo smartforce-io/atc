@@ -2,10 +2,13 @@ package githubservice
 
 import (
 	"errors"
-	"log"
 
 	"gopkg.in/yaml.v2"
 )
+
+var unmarshal = func(content []byte, atcSettingsPtr *AtcSettings) error {
+	return yaml.Unmarshal([]byte(content), atcSettingsPtr)
+}
 
 type AtcSettings struct {
 	Path   string `json:"path"`
@@ -16,7 +19,7 @@ var (
 	errFailedResponse = errors.New("failed response")
 )
 
-func getAtcSetting(ghcp *ghContentProvider) (*AtcSettings, error) {
+func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
 	content, reqErr, err := ghcp.getContents(".atc.yaml")
 
 	if err != nil {
@@ -24,12 +27,11 @@ func getAtcSetting(ghcp *ghContentProvider) (*AtcSettings, error) {
 	}
 
 	if reqErr != nil {
-		log.Printf("getAtcSetting received a failed status for %s/%s: %q", ghcp.owner, ghcp.repo, reqErr.StatusCode)
 		return nil, errFailedResponse
 	}
 
 	settings := &AtcSettings{}
-	if err := yaml.Unmarshal([]byte(content), settings); err != nil {
+	if err := unmarshal([]byte(content), settings); err != nil {
 		return nil, err
 	}
 	return settings, nil

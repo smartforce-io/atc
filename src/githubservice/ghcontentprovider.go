@@ -7,6 +7,10 @@ import (
 	"github.com/google/go-github/github"
 )
 
+type contentProvider interface {
+	getContents(path string) (string, *RequestError, error)
+}
+
 type RequestError struct {
 	StatusCode int
 }
@@ -19,11 +23,11 @@ type ghContentProvider struct {
 	ghClient *github.Client
 }
 
-func (ghContentProvider *ghContentProvider) getContents(path string) (string, *RequestError, error) {
+func (ghcp *ghContentProvider) getContents(path string) (string, *RequestError, error) {
 
-	fileContent, _, response, err := ghContentProvider.ghClient.Repositories.GetContents(ghContentProvider.ctx,
-		ghContentProvider.owner, ghContentProvider.repo, path,
-		&github.RepositoryContentGetOptions{Ref: ghContentProvider.sha1})
+	fileContent, _, response, err := ghcp.ghClient.Repositories.GetContents(ghcp.ctx,
+		ghcp.owner, ghcp.repo, path,
+		&github.RepositoryContentGetOptions{Ref: ghcp.sha1})
 
 	if err != nil {
 		return "", nil, err
