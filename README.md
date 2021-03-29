@@ -1,6 +1,24 @@
 # Automated Tag Creator
 The backend for Automated Tag Creator
-
+## Developer mode configuration
+1. Create app instance in own account (Developer settings/GitHub Apps)
+2. Start `ngrok`
+3. Use ngrok address for webhook url like: ```https://26680d04b127.ngrok.io/api/webhook```
+4. Generate and download private key
+5. Configure app permissions:
+    - Content: Read-only
+    - Discussion: Read-Write
+    - MetaData:Read-only
+6. Subscribe to events:
+    - Create
+    - Push
+    - Delete
+7. Use script like below to start app
+    ```bash
+    export ATC_PEM_PATH=/home/andrey/.ssh/atc-local.2021-03-25.private-key.pem
+    export ATC_APP_ID=106890
+    bin/atcapp
+    ```
 ## Setup the Github App
 1. Add `Webhook URL` [https://github.com/settings/apps/automated-tag-creator](https://github.com/settings/apps/automated-tag-creator)
 2. Generate a private key
