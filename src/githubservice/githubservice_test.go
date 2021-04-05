@@ -2,14 +2,14 @@ package githubservice
 
 import "errors"
 
-type testContentProvider struct {
+type mockContentProvider struct {
 	content string
 	err     error
 	reqErr  *RequestError
 }
 
-func (testContentProvider *testContentProvider) getContents(path string) (string, *RequestError, error) {
-	return testContentProvider.content, testContentProvider.reqErr, testContentProvider.err
+func (mockContentProvider *mockContentProvider) getContents(path string) (string, *RequestError, error) {
+	return mockContentProvider.content, mockContentProvider.reqErr, mockContentProvider.err
 }
 
 var (
