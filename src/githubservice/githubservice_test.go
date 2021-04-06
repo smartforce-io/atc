@@ -87,11 +87,20 @@ func getBodyJson(req *http.Request) map[string]interface{} {
 
 type evaluation struct {
 	conditionFn func(req *http.Request) bool
-	responseFn  func(req *http.Request) *http.Response
+	responseFn  RoundTripFunc
 }
 
 type mockClientProvider struct {
 	evaluations map[string]evaluation
+}
+
+func (mockClientProvider *mockClientProvider) overrideResponseFn(action string, ovveride func(req *http.Request, defaultFn RoundTripFunc) *http.Response) {
+	eval := mockClientProvider.evaluations[action]
+	saved := eval.responseFn
+	eval.responseFn = func(req *http.Request) *http.Response {
+		return ovveride(req, saved)
+	}
+	mockClientProvider.evaluations[action] = eval
 }
 
 func DefaultMockClientProvider() *mockClientProvider {

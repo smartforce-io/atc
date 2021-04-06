@@ -127,7 +127,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 			return
 		}
 
-		cmnt := fmt.Sprintf("Added a new version for %q: %q", fullname, newVersion)
+		cmnt := fmt.Sprintf("Added a new version for %q: %q", fullname, caption)
 		addComment(client, owner, repo, sha, cmnt)
 	}
 }

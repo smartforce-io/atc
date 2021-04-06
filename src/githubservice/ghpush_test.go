@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/go-github/github"
@@ -155,35 +156,145 @@ var testWebhookPayload = `
 func TestPushActionBasic(t *testing.T) {
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
-	t.Logf("ref: %s\n", *p.Ref)
 
 	os.Setenv(envvars.PemData, testRsaKey)
 
 	mockClientProviderPtr := DefaultMockClientProvider()
 
-	commentEval := mockClientProviderPtr.evaluations["ADD_COMMENT"]
-
 	commentCreated := false
 	expectedMessage := `Added a new version for "Codertocat/Hello-World": "5"`
 	var message string
 
-	saved := commentEval.responseFn
-
-	commentEval.responseFn = func(req *http.Request) *http.Response {
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		commentCreated = true
 		log.Println(req.Body)
 		json := getBodyJson(req)
 		message = fmt.Sprintf("%v", json["body"])
-		return saved(req)
-	}
-
-	mockClientProviderPtr.evaluations["ADD_COMMENT"] = commentEval
+		return defaultFn(req)
+	})
 
 	PushAction(&p, mockClientProviderPtr)
 
 	if !commentCreated {
 		t.Errorf("Comment wasn't created\n")
 	}
+	if message != expectedMessage {
+		t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
+	}
+
+}
+func TestConfiguredPushAction(t *testing.T) {
+	var withConfiguredPath = "path: projectA/pom.xml"
+
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(200, mockContentResponse(withConfiguredPath))
+	})
+
+	var receivedUrl string
+
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		receivedUrl = req.URL.String()
+		return defaultFn(req)
+	})
+
+	PushAction(&p, mockClientProviderPtr)
+
+	if !strings.Contains(receivedUrl, "projectA/pom.xml") {
+		t.Errorf("Config is not used\n")
+	}
+}
+func TestMissedOldVersion(t *testing.T) {
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	commentCreated := false
+
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		commentCreated = true
+		return defaultFn(req)
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
+	PushAction(&p, mockClientProviderPtr)
+
+	if !commentCreated {
+		t.Errorf("Comment wasn't created\n")
+	}
+}
+func TestMissedNewVersion(t *testing.T) {
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	commentCreated := false
+
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		commentCreated = true
+		return defaultFn(req)
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
+	PushAction(&p, mockClientProviderPtr)
+
+	if commentCreated {
+		t.Errorf("Comment should not be created\n")
+	}
+}
+func TestConfiguredTagPrefix(t *testing.T) {
+	var withConfiguredPath = "prefix: n"
+
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(200, mockContentResponse(withConfiguredPath))
+	})
+	expectedMessage := `Added a new version for "Codertocat/Hello-World": "n5"`
+	expectedTag := "n5"
+	var message string
+	var tag string
+
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		json := getBodyJson(req)
+		message = fmt.Sprintf("%v", json["body"])
+		return defaultFn(req)
+	})
+	mockClientProviderPtr.overrideResponseFn("ADD_TAG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		json := getBodyJson(req)
+		tag = fmt.Sprintf("%v", json["tag"])
+		return defaultFn(req)
+	})
+
+	PushAction(&p, mockClientProviderPtr)
+
+	if tag != expectedTag {
+		t.Errorf("Wrong tag! expected: %s, got: %s\n", expectedTag, tag)
+	}
+
 	if message != expectedMessage {
 		t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
 	}
