@@ -21,10 +21,10 @@ func detectFetchType(path string) string {
 	return filepath.Base(path)
 }
 
-func PushAction(push *github.WebHookPayload) {
+func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 	id := *push.Installation.ID
 
-	token, err := getAccessToken(id)
+	token, err := getAccessToken(id, clientProvider)
 	if err != nil {
 		log.Printf("getAccessToken Error: %v", err)
 		return
@@ -33,7 +33,7 @@ func PushAction(push *github.WebHookPayload) {
 	repo := push.GetRepo().GetName()
 	fullname := push.GetRepo().GetFullName()
 	ctx := context.Background()
-	client := getGithubClient(token, ctx)
+	client := clientProvider.Get(token, ctx)
 
 	ghOldContentProvider := ghContentProvider{
 		owner:    owner,
@@ -88,6 +88,8 @@ func PushAction(push *github.WebHookPayload) {
 			if reqError == nil && err == nil {
 				fetched = true
 				break
+			} else {
+				log.Printf("autofetcher error for %q: %v", defaultPath, err)
 			}
 		}
 		if !fetched {

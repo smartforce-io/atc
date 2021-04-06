@@ -7,7 +7,14 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func getGithubClient(token string, ctx context.Context) *github.Client {
+type ClientProvider interface {
+	Get(token string, ctx context.Context) *github.Client
+}
+
+type GithubClientProvider struct {
+}
+
+func (githubClientProvider *GithubClientProvider) Get(token string, ctx context.Context) *github.Client {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
