@@ -15,9 +15,9 @@ var failingPomXmlFetcherUnmarshal = func(content []byte, pomXmlPtr *PomXml) erro
 func TestPomXmlFetcherBasic(t *testing.T) {
 	fetcher := pomXmlFetcher{}
 
-	cp := mockContentProvider{basicPomXml, nil, nil}
+	cp := mockContentProvider{basicPomXml, nil}
 
-	v, _, err := fetcher.GetVersion(&cp, "pom.xml")
+	v, err := fetcher.GetVersion(&cp, "pom.xml")
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -31,29 +31,14 @@ func TestPomXmlFetcherBasic(t *testing.T) {
 func TestPomXmlFetcherGeneralError(t *testing.T) {
 	fetcher := pomXmlFetcher{}
 
-	cp := mockContentProvider{content: "", reqErr: nil, err: errGeneral}
+	cp := mockContentProvider{content: "", err: errGeneral}
 
-	_, _, err := fetcher.GetVersion(&cp, "pom.xml")
+	_, err := fetcher.GetVersion(&cp, "pom.xml")
 
 	if err != errGeneral {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, errGeneral)
 	}
 }
-func TestPomXmlFetcherHtmlError(t *testing.T) {
-	fetcher := pomXmlFetcher{}
-
-	expectedReqErr := RequestError{StatusCode: 404}
-
-	cp := mockContentProvider{content: "", reqErr: &expectedReqErr, err: nil}
-
-	_, reqErr, _ := fetcher.GetVersion(&cp, "pom.xml")
-
-	if reqErr.StatusCode != 404 {
-		t.Errorf("Invalid http status, Got %d, wanted %d", 404, reqErr.StatusCode)
-	}
-
-}
-
 func TestPomXmlFetcherUnmarshalError(t *testing.T) {
 	fetcher := pomXmlFetcher{}
 
@@ -61,9 +46,9 @@ func TestPomXmlFetcherUnmarshalError(t *testing.T) {
 
 	unmarshalPomXml = failingPomXmlFetcherUnmarshal
 
-	cp := mockContentProvider{basicPomXml, nil, nil}
+	cp := mockContentProvider{basicPomXml, nil}
 
-	_, _, err := fetcher.GetVersion(&cp, "pom.xml")
+	_, err := fetcher.GetVersion(&cp, "pom.xml")
 
 	if err != errUnmarshal {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, errUnmarshal)

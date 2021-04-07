@@ -13,15 +13,15 @@ var unmarshalPomXml = func(content []byte, pomXmlPtr *PomXml) error {
 	return xml.Unmarshal([]byte(content), pomXmlPtr)
 }
 
-func (pomXmlFetcher pomXmlFetcher) GetVersion(ghContentProvider contentProvider, path string) (string, *RequestError, error) {
-	content, reqErr, err := ghContentProvider.getContents(path)
-	if err != nil || reqErr != nil {
-		return "", reqErr, err
+func (pomXmlFetcher *pomXmlFetcher) GetVersion(ghContentProvider contentProvider, path string) (string, error) {
+	content, err := ghContentProvider.getContents(path)
+	if err != nil {
+		return "", err
 	}
 	pom := &PomXml{}
 	if err := unmarshalPomXml([]byte(content), pom); err != nil {
-		return "", nil, err
+		return "", err
 	}
-	return pom.Version, nil, nil
+	return pom.Version, nil
 
 }

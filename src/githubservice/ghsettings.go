@@ -1,8 +1,6 @@
 package githubservice
 
 import (
-	"errors"
-
 	"gopkg.in/yaml.v2"
 )
 
@@ -15,19 +13,11 @@ type AtcSettings struct {
 	Prefix string `json:"prefix"`
 }
 
-var (
-	errFailedResponse = errors.New("failed response")
-)
-
 func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
-	content, reqErr, err := ghcp.getContents(".atc.yaml")
+	content, err := ghcp.getContents(".atc.yaml")
 
 	if err != nil {
 		return nil, err
-	}
-
-	if reqErr != nil {
-		return nil, errFailedResponse
 	}
 
 	settings := &AtcSettings{}

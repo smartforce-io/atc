@@ -11,7 +11,7 @@ import (
 )
 
 var autoFetchers = map[string]VersionFetcher{
-	"pom.xml": pomXmlFetcher{},
+	"pom.xml": &pomXmlFetcher{},
 }
 
 func detectFetchType(path string) string {
@@ -35,21 +35,21 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 	ctx := context.Background()
 	client := clientProvider.Get(token, ctx)
 
-	ghOldContentProvider := ghContentProvider{
+	ghOldContentProviderPtr := &ghContentProvider{
 		owner:    owner,
 		repo:     repo,
 		sha1:     push.GetBefore(),
 		ctx:      ctx,
 		ghClient: client,
 	}
-	ghNewContentProvider := ghContentProvider{
+	ghNewContentProviderPtr := &ghContentProvider{
 		owner:    owner,
 		repo:     repo,
 		ctx:      ctx,
 		ghClient: client,
 	}
 
-	settings, err := getAtcSetting(&ghNewContentProvider)
+	settings, err := getAtcSetting(ghNewContentProviderPtr)
 	if err != nil {
 		settings = &AtcSettings{} //blank settings
 	}
@@ -62,30 +62,33 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		var err error
 		var reqError *RequestError
 		fetcher := autoFetchers[fetchType]
-		oldVersion, _, err = fetcher.GetVersion(&ghOldContentProvider, settings.Path) //ignore http api error
-		if err != nil {
+		oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, settings.Path)
+		if err != nil && err != errHttpStatusCode { //ignore http api error
 			log.Printf("get prev version error for %q: %v", fullname, err)
 			return
 		}
-		newVersion, reqError, err = fetcher.GetVersion(&ghNewContentProvider, settings.Path)
+		newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, settings.Path)
 		if err != nil {
-			log.Printf("get version error for %q: %v", fullname, err)
-			return
-		}
-		if reqError != nil {
-			log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
+			if err == errHttpStatusCode {
+				log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
+			} else {
+				log.Printf("get version error for %q: %v", fullname, err)
+			}
 			return
 		}
 	} else {
 		fetched := false
 		for defaultPath, fetcher := range autoFetchers {
 			var err error
-			var reqError *RequestError
-			oldVersion, _, _ = fetcher.GetVersion(&ghOldContentProvider, defaultPath)
+			oldVersion, _ = fetcher.GetVersion(ghOldContentProviderPtr, defaultPath)
+			if err != nil && err != errHttpStatusCode { //ignore http api error
+				log.Printf("get prev version error for %q: %v", fullname, err)
+				return
+			}
 
-			newVersion, reqError, err = fetcher.GetVersion(&ghNewContentProvider, defaultPath)
+			newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, defaultPath)
 
-			if reqError == nil && err == nil {
+			if err == nil {
 				fetched = true
 				break
 			} else {

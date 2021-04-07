@@ -17,7 +17,7 @@ func TestBasicAtcSetting(t *testing.T) {
 	file := "pom.xml"
 	prefix := "n"
 
-	cp := mockContentProvider{basicConfig, nil, nil}
+	cp := mockContentProvider{basicConfig, nil}
 
 	settings, err := getAtcSetting(&cp)
 	if err != nil {
@@ -32,18 +32,8 @@ func TestBasicAtcSetting(t *testing.T) {
 		t.Errorf("wrong settings Prefix! Got %q, wanted %q", settings.Prefix, prefix)
 	}
 }
-func TestWrongAtcSettingFile(t *testing.T) {
-	reqErr := RequestError{StatusCode: 404}
-	cp := mockContentProvider{content: "", reqErr: &reqErr, err: nil}
-	_, err := getAtcSetting(&cp)
-
-	if err != errFailedResponse {
-		t.Errorf("Invalid error, Got %v, wanted %v", err, errFailedResponse)
-	}
-
-}
 func TestAtcSettingGeneralError(t *testing.T) {
-	cp := mockContentProvider{content: "", reqErr: nil, err: errGeneral}
+	cp := mockContentProvider{content: "", err: errGeneral}
 	_, err := getAtcSetting(&cp)
 
 	if err != errGeneral {
@@ -57,7 +47,7 @@ func TestAtcSettingUnmarshalError(t *testing.T) {
 
 	unmarshal = failingAtcSettingsUnmarshal
 
-	cp := mockContentProvider{basicConfig, nil, nil}
+	cp := mockContentProvider{basicConfig, nil}
 	_, err := getAtcSetting(&cp)
 
 	if err != errUnmarshal {

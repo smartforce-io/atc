@@ -2,18 +2,21 @@ package githubservice
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/google/go-github/github"
 )
 
 type contentProvider interface {
-	getContents(path string) (string, *RequestError, error)
+	getContents(path string) (string, error)
 }
 
 type RequestError struct {
 	StatusCode int
 }
+
+var errHttpStatusCode = errors.New("http status code error")
 
 type ghContentProvider struct {
 	owner    string
@@ -23,20 +26,20 @@ type ghContentProvider struct {
 	ghClient *github.Client
 }
 
-func (ghcp *ghContentProvider) getContents(path string) (string, *RequestError, error) {
+func (ghcp *ghContentProvider) getContents(path string) (string, error) {
 
 	fileContent, _, response, err := ghcp.ghClient.Repositories.GetContents(ghcp.ctx,
 		ghcp.owner, ghcp.repo, path,
 		&github.RepositoryContentGetOptions{Ref: ghcp.sha1})
 
 	if err != nil {
-		return "", nil, err
+		return "", err
 	}
 	content, _ := fileContent.GetContent()
 
 	if response.StatusCode != http.StatusOK {
-		return content, &RequestError{StatusCode: response.StatusCode}, nil
+		return content, errHttpStatusCode
 	} else {
-		return content, nil, nil
+		return content, nil
 	}
 }

@@ -41,11 +41,10 @@ func mockContentResponse(content string) string {
 type mockContentProvider struct {
 	content string
 	err     error
-	reqErr  *RequestError
 }
 
-func (mockContentProvider *mockContentProvider) getContents(path string) (string, *RequestError, error) {
-	return mockContentProvider.content, mockContentProvider.reqErr, mockContentProvider.err
+func (mockContentProvider *mockContentProvider) getContents(path string) (string, error) {
+	return mockContentProvider.content, mockContentProvider.err
 }
 
 var (
@@ -57,7 +56,7 @@ var (
 type RoundTripFunc func(req *http.Request) *http.Response
 
 // RoundTrip
-func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { //this is kind of wrapper where original function is used in interface implementation
 	return f(req), nil
 }
 
