@@ -14,7 +14,7 @@ var (
 	errWrongCreateAccessTokenStatus = errors.New("wrong access status during create access token for installation (not 201)")
 )
 
-func getAccessToken(id int64) (string, error) {
+func getAccessToken(id int64, clientProvider ClientProvider) (string, error) {
 	var pemData []byte
 	var err error
 	pemEnv := os.Getenv(envvars.PemData)
@@ -39,7 +39,7 @@ func getAccessToken(id int64) (string, error) {
 	}
 
 	ctx := context.Background()
-	client := getGithubClient(jwt, ctx)
+	client := clientProvider.Get(jwt, ctx)
 	inst, resp, err := client.Apps.CreateInstallationToken(ctx, id, nil)
 	if err != nil {
 		return "", err
