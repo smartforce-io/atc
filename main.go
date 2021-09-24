@@ -1,9 +1,10 @@
 package main
 
 import (
-	"apiserver"
 	"log"
 	"os"
+
+	"github.com/smartforce-io/atc/apiserver"
 )
 
 func main() {

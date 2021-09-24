@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v39/github"
 )
 
 type contentProvider interface {

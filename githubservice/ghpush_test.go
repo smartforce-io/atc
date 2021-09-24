@@ -2,7 +2,6 @@ package githubservice
 
 import (
 	"encoding/json"
-	"envvars"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,7 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/github"
+	"github.com/smartforce-io/atc/envvars"
+
+	"github.com/google/go-github/v39/github"
 )
 
 var testWebhookPayload = `

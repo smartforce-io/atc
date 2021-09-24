@@ -1,9 +1,10 @@
 package githubservice
 
 import (
-	"envvars"
 	"os"
 	"testing"
+
+	"github.com/smartforce-io/atc/envvars"
 )
 
 const (

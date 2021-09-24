@@ -2,12 +2,13 @@ package githubservice
 
 import (
 	"context"
-	"envvars"
 	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/smartforce-io/atc/envvars"
 )
 
 var (
