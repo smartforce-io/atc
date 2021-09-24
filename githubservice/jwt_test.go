@@ -3,9 +3,10 @@ package githubservice
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"envvars"
 	"os"
 	"testing"
+
+	"github.com/smartforce-io/atc/envvars"
 
 	jwt "github.com/dgrijalva/jwt-go"
 )

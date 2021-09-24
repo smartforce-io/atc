@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v39/github"
 )
 
 var autoFetchers = map[string]VersionFetcher{

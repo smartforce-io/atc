@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v39/github"
 )
 
 func addComment(client *github.Client, owner, repo, sha, text string) {

@@ -2,13 +2,14 @@ package apiserver
 
 import (
 	"encoding/json"
-	"githubservice"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/github"
+	"github.com/smartforce-io/atc/githubservice"
+
+	"github.com/google/go-github/v39/github"
 )
 
 type Webhook struct {
