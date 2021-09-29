@@ -11,7 +11,9 @@ import (
 )
 
 var autoFetchers = map[string]VersionFetcher{
-	"pom.xml": &pomXmlFetcher{},
+	"pom.xml":           &pomXmlFetcher{},
+	"grable.properties": &gradlePropertiesFetcher{},
+	".npmrc":            &npmrcFetcher{},
 }
 
 func detectFetchType(path string) string {
@@ -105,7 +107,10 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 	if newVersion != oldVersion {
 		log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
 
-		caption := settings.Prefix + newVersion
+		//GOTO change caption after add template!
+		//caption old vers:
+		//caption := settings.Prefix + newVersion
+		caption := newVersion
 		sha := push.GetAfter()
 		objType := "commit"
 		timestamp := time.Now()

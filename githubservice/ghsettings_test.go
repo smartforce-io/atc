@@ -1,6 +1,7 @@
 package githubservice
 
 import (
+	"path/filepath"
 	"testing"
 )
 
@@ -9,13 +10,19 @@ func failingAtcSettingsUnmarshal(content []byte, atcSettingsPtr *AtcSettings) er
 }
 
 var basicConfig = `
-path: pom.xml
-prefix: n
+type: maven
+path: /contests/pom.xml
+behavior: before
+template: v{{.version}}
+//prefix: n
 `
 
 func TestBasicAtcSetting(t *testing.T) {
+	typel := "maven"
 	file := "pom.xml"
-	prefix := "n"
+	behavior := "before"
+	template := "v{{.version}}"
+	//prefix := "n"
 
 	cp := mockContentProvider{basicConfig, nil}
 
@@ -25,12 +32,24 @@ func TestBasicAtcSetting(t *testing.T) {
 		return
 	}
 
+	if settings.Type != typel {
+		t.Errorf("wrong settings File! Got %q, wanted %q", settings.Type, typel)
+	}
 	if settings.Path != file {
-		t.Errorf("wrong settings File! Got %q, wanted %q", settings.Path, file)
+		if filepath.Base(settings.Path) != file {
+			t.Errorf("wrong settings File! Got %q, wanted %q", settings.Path, file)
+		}
 	}
-	if settings.Prefix != prefix {
-		t.Errorf("wrong settings Prefix! Got %q, wanted %q", settings.Prefix, prefix)
+
+	if settings.Behavior != behavior {
+		t.Errorf("wrong settings Behavior! Got %q, wanted %q", settings.Behavior, behavior)
 	}
+	if settings.Template != template {
+		t.Errorf("wrong settings Template! Got %q, wanted %q", settings.Template, template)
+	}
+	// if settings.Prefix != prefix {
+	// 	t.Errorf("wrong settings Prefix! Got %q, wanted %q", settings.Prefix, prefix)
+	// }
 }
 func TestAtcSettingGeneralError(t *testing.T) {
 	cp := mockContentProvider{content: "", err: errGeneral}

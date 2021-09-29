@@ -9,8 +9,11 @@ var unmarshal = func(content []byte, atcSettingsPtr *AtcSettings) error {
 }
 
 type AtcSettings struct {
-	Path   string `json:"path"`
-	Prefix string `json:"prefix"`
+	Type     string `json:"type"`
+	Path     string `json:"path"`
+	Behavior string `json:"behavior"`
+	Template string `json:"template"`
+	//Prefix string `json:"prefix"`
 }
 
 func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
