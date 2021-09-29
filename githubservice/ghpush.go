@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v39/github"
@@ -21,6 +22,13 @@ func detectFetchType(path string) string {
 		return ""
 	}
 	return filepath.Base(path)
+}
+
+func madeСaptionToTemplate(template, version string) string {
+	if template == "" {
+		return "" // need ckeck on ""????
+	}
+	return strings.Replace(template, ".version", version, -1)
 }
 
 func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
@@ -107,10 +115,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 	if newVersion != oldVersion {
 		log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
 
-		//GOTO change caption after add template!
-		//caption old vers:
-		//caption := settings.Prefix + newVersion
-		caption := newVersion
+		caption := madeСaptionToTemplate(settings.Template, newVersion)
 		sha := push.GetAfter()
 		objType := "commit"
 		timestamp := time.Now()
