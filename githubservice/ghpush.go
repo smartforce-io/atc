@@ -62,6 +62,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 	settings, err := getAtcSetting(ghNewContentProviderPtr)
 	if err != nil {
 		settings = &AtcSettings{} //blank settings
+		//TODO log error???
 	}
 
 	newVersion := ""
@@ -90,13 +91,13 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		fetched := false
 		for defaultPath, fetcher := range autoFetchers {
 			var err error
-			oldVersion, _ = fetcher.GetVersion(ghOldContentProviderPtr, defaultPath)
+			oldVersion, _ = fetcher.GetVersionDefaultPath(ghOldContentProviderPtr)
 			if err != nil && err != errHttpStatusCode { //ignore http api error
 				log.Printf("get prev version error for %q: %v", fullname, err)
 				return
 			}
 
-			newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, defaultPath)
+			newVersion, err = fetcher.GetVersionDefaultPath(ghNewContentProviderPtr)
 
 			if err == nil {
 				fetched = true

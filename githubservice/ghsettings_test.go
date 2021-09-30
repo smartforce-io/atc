@@ -1,6 +1,8 @@
 package githubservice
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -18,7 +20,7 @@ template: v{{.version}}
 `
 
 func TestBasicAtcSetting(t *testing.T) {
-	typel := "maven"
+	// typel := "maven"
 	file := "pom.xml"
 	behavior := "before"
 	template := "v{{.version}}"
@@ -32,9 +34,9 @@ func TestBasicAtcSetting(t *testing.T) {
 		return
 	}
 
-	if settings.Type != typel {
-		t.Errorf("wrong settings File! Got %q, wanted %q", settings.Type, typel)
-	}
+	// if settings.Type != typel {
+	// 	t.Errorf("wrong settings File! Got %q, wanted %q", settings.Type, typel)
+	// }
 	if settings.Path != file {
 		if filepath.Base(settings.Path) != file {
 			t.Errorf("wrong settings File! Got %q, wanted %q", settings.Path, file)
@@ -51,9 +53,23 @@ func TestBasicAtcSetting(t *testing.T) {
 	// 	t.Errorf("wrong settings Prefix! Got %q, wanted %q", settings.Prefix, prefix)
 	// }
 }
+
+func TestUnmarshalDefault(t *testing.T) {
+	fileByte, err := os.ReadFile("../../.atc.yaml")
+	if err != nil {
+		t.Errorf("Err read file %v", err)
+	}
+	settings := &AtcSettings{}
+	if err := unmarshal(fileByte, settings); err != nil {
+		t.Errorf("err unmarshal: %v", err)
+	}
+
+}
 func TestAtcSettingGeneralError(t *testing.T) {
 	cp := mockContentProvider{content: "", err: errGeneral}
-	_, err := getAtcSetting(&cp)
+	set, err := getAtcSetting(&cp)
+
+	fmt.Printf("t: %v\n", set)
 
 	if err != errGeneral {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, errGeneral)

@@ -32,5 +32,8 @@ func (gradleBuildFetcher *gradlePropertiesFetcher) GetVersion(ghContentProvider 
 		return "", err
 	}
 	return grable.Version, nil
+}
 
+func (gradleBuildFetcher *gradlePropertiesFetcher) GetVersionDefaultPath(ghContentProvider contentProvider) (string, error) {
+	return gradleBuildFetcher.GetVersion(ghContentProvider, "/../grable.properties/")
 }
