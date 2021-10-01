@@ -35,5 +35,5 @@ func (npmrcFetcher *npmrcFetcher) GetVersion(ghContentProvider contentProvider, 
 }
 
 func (npmrcFetcher *npmrcFetcher) GetVersionDefaultPath(ghContentProvider contentProvider) (string, error) {
-	return npmrcFetcher.GetVersion(ghContentProvider, "/../.npmrc")
+	return npmrcFetcher.GetVersion(ghContentProvider, ".npmrc")
 }

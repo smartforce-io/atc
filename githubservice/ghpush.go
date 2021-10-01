@@ -25,10 +25,18 @@ func detectFetchType(path string) string {
 }
 
 func madeСaptionToTemplate(template, version string) string {
-	if template == "" {
-		return "" // need ckeck on ""????
+	if !strings.Contains(template, ".version") {
+		return "v{{.version}}"
 	}
 	return strings.Replace(template, ".version", version, -1)
+}
+
+func madeShaToBehavior(push *github.WebHookPayload, behavior string) string {
+	if strings.ToLower(behavior) == "before" {
+		return *push.Before
+	}
+	return *push.After
+
 }
 
 func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
@@ -62,7 +70,6 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 	settings, err := getAtcSetting(ghNewContentProviderPtr)
 	if err != nil {
 		settings = &AtcSettings{} //blank settings
-		//TODO log error???
 	}
 
 	newVersion := ""
@@ -91,8 +98,8 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		fetched := false
 		for defaultPath, fetcher := range autoFetchers {
 			var err error
-			oldVersion, _ = fetcher.GetVersionDefaultPath(ghOldContentProviderPtr)
-			if err != nil && err != errHttpStatusCode { //ignore http api error
+			oldVersion, _ = fetcher.GetVersionDefaultPath(ghOldContentProviderPtr) //ignor error not fount file?????
+			if err != nil && err != errHttpStatusCode {                            //ignore http api error
 				log.Printf("get prev version error for %q: %v", fullname, err)
 				return
 			}
@@ -117,7 +124,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
 
 		caption := madeСaptionToTemplate(settings.Template, newVersion)
-		sha := push.GetAfter()
+		sha := madeShaToBehavior(push, settings.Behavior)
 		objType := "commit"
 		timestamp := time.Now()
 

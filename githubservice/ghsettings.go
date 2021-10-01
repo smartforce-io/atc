@@ -21,13 +21,11 @@ func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
 	if err != nil {
 		return nil, err
 	}
-	//GOTO check content != ""
-	//.atc.yaml not found
 
 	settings := &AtcSettings{}
 	if err := unmarshal([]byte(content), settings); err != nil {
 		return nil, err
 	}
-	//GOTO check template for contains ".version"
+
 	return settings, nil
 }
