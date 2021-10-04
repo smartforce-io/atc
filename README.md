@@ -23,6 +23,14 @@ The backend for Automated Tag Creator
 1. Add `Webhook URL` [https://github.com/settings/apps/automated-tag-creator](https://github.com/settings/apps/automated-tag-creator)
 2. Generate a private key
 
+## Configuration .atc.yaml
+1. Download config file `.atc.yaml` [https://github.com/smartforce-io/atc/.atc.yaml](https://github.com/smartforce-io/atc/.atc.yaml)
+2. Move `.atc.yaml` to project root
+3. Change `.atc.yaml` if You need it:
+    - Change `path` to configuration file your Build automation (`pom.xml` for Maven, `.npmrc` for NPM or `gradle.properties` for Gradle)
+    - Choose when add tags: `Before` or `After` commit(Default After)
+    - Write template for tags (You need use substring {{.version}})
+
 ## Deploy the backend
 ### Add pem data to KMS
 Check that the kms api is enabled: [cloudkms.googleapis.com](https://console.developers.google.com/apis/library/cloudkms.googleapis.com).
