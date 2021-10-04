@@ -30,7 +30,7 @@ The backend for Automated Tag Creator
 
 More informations you can see in [Creating a GitHub App](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app)
 
-## Configurate the GitHub App
+## Configurate and install the GitHub App
 1. Navigate to your account settings.
 2. Go to `Developer settings` -> `GitHub Apps`
 3. Click `Edit` in your App
@@ -47,6 +47,10 @@ More informations you can see in [Creating a GitHub App](https://docs.github.com
         * `Push`
         * `Delete`
     - Click `Save changes`
+5. Go to `Install App`
+    - Choose an account to install and click `Install`
+    - Choose `All repositories` or  `Only select repositories` and select repositories
+    - Click `Install`
 
 ## Setup the Github App
 1. Add `Webhook URL` [https://github.com/settings/apps/automated-tag-creator](https://github.com/settings/apps/automated-tag-creator)
