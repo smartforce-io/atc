@@ -32,7 +32,7 @@ More informations you can see in [Creating a GitHub App](https://docs.github.com
 
 ## Configurate the GitHub App
 1. Navigate to your account settings.
-2. Go to `Developer settings` -> `GitGub Apps`
+2. Go to `Developer settings` -> `GitHub Apps`
 3. Click `Edit` in your App
     - Select `Webhook -> Active`
     - Use ngrok address with *api/webhook* for webhook url like: ```https://26680d04b127.ngrok.io/api/webhook```
@@ -40,8 +40,7 @@ More informations you can see in [Creating a GitHub App](https://docs.github.com
     - Click `Save changes`
 4. Go to `Permissions & events`
     - Configurate `Repository permissions`:
-        * `Content`: Read-only
-        * `Discussion`: Read-Write
+        * `Content`: Read & write
         * `MetaData`: Read-only
     - Select in `subscribe to events`:
         * `Create`
