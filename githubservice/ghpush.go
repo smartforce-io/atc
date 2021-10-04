@@ -13,7 +13,7 @@ import (
 
 var autoFetchers = map[string]VersionFetcher{
 	"pom.xml":           &pomXmlFetcher{},
-	"grable.properties": &gradlePropertiesFetcher{},
+	"gradle.properties": &gradlePropertiesFetcher{},
 	".npmrc":            &npmrcFetcher{},
 }
 
