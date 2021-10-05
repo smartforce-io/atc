@@ -3,7 +3,6 @@ package githubservice
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -20,38 +19,51 @@ template: v{{.version}}
 `
 
 func TestBasicAtcSetting(t *testing.T) {
-	// typel := "maven"
-	file := "pom.xml"
-	behavior := "before"
-	template := "v{{.version}}"
-	//prefix := "n"
+
+	var testsConfig = []struct {
+		config   string
+		path     string
+		behavior string
+		template string
+	}{
+		{`
+path: contents/pom.xml
+behavior: before
+template: v{{.version}}
+`, `contents/pom.xml`, `before`, `v{{.version}}`},
+		{`
+path: gradle.properties
+behavior: after
+template: vGR{{.version}}
+`, `gradle.properties`, `after`, `vGR{{.version}}`},
+		{`
+path: 
+behavior: 
+template: 
+`, ``, ``, ``},
+	}
 
 	cp := mockContentProvider{basicConfig, nil}
 
-	settings, err := getAtcSetting(&cp)
+	_, err := getAtcSetting(&cp)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 		return
 	}
 
-	// if settings.Type != typel {
-	// 	t.Errorf("wrong settings File! Got %q, wanted %q", settings.Type, typel)
-	// }
-	if settings.Path != file {
-		if filepath.Base(settings.Path) != file {
-			t.Errorf("wrong settings File! Got %q, wanted %q", settings.Path, file)
+	for _, test := range testsConfig {
+		cp = mockContentProvider{test.config, nil}
+		settings, _ := getAtcSetting(&cp)
+		if settings.Path != test.path {
+			t.Errorf("wrong settings Path! Got %q, wanted %q", settings.Path, test.path)
+		}
+		if settings.Behavior != test.behavior {
+			t.Errorf("wrong settings Begavior! Got %q, wanted %q", settings.Behavior, test.behavior)
+		}
+		if settings.Template != test.template {
+			t.Errorf("wrong settings Template! Got %q, wanted %q", settings.Template, test.template)
 		}
 	}
-
-	if settings.Behavior != behavior {
-		t.Errorf("wrong settings Behavior! Got %q, wanted %q", settings.Behavior, behavior)
-	}
-	if settings.Template != template {
-		t.Errorf("wrong settings Template! Got %q, wanted %q", settings.Template, template)
-	}
-	// if settings.Prefix != prefix {
-	// 	t.Errorf("wrong settings Prefix! Got %q, wanted %q", settings.Prefix, prefix)
-	// }
 }
 
 func TestUnmarshalDefault(t *testing.T) {

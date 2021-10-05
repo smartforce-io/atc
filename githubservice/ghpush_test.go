@@ -163,7 +163,7 @@ func TestPushActionBasic(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
-	expectedMessage := `Added a new version for "Codertocat/Hello-World": "5"`
+	expectedMessage := `Added a new version for "Codertocat/Hello-World": "v5"`
 	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
@@ -222,6 +222,7 @@ func TestMissedOldVersion(t *testing.T) {
 	commentCreated := false
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		//func not go there
 		commentCreated = true
 		return defaultFn(req)
 	})
@@ -232,7 +233,7 @@ func TestMissedOldVersion(t *testing.T) {
 
 	PushAction(&p, mockClientProviderPtr)
 
-	if !commentCreated {
+	if commentCreated {
 		t.Errorf("Comment wasn't created\n")
 	}
 }
@@ -274,8 +275,8 @@ func TestConfiguredTagPrefix(t *testing.T) {
 	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		return newTestResponse(200, mockContentResponse(withConfiguredPath))
 	})
-	expectedMessage := `Added a new version for "Codertocat/Hello-World": "n5"`
-	expectedTag := "n5"
+	expectedMessage := `Added a new version for "Codertocat/Hello-World": "v5"`
+	expectedTag := "v5"
 	var message string
 	var tag string
 
@@ -300,4 +301,26 @@ func TestConfiguredTagPrefix(t *testing.T) {
 		t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
 	}
 
+}
+
+func TestMadeСaptionToTemplate(t *testing.T) {
+	var tests = []struct {
+		template string
+		version  string
+		result   string
+	}{
+		{`v{{.version}}`, `1.0`, `v1.0`},
+		{`vNN{{.version}}`, `1.0`, `vNN1.0`},
+		{`v_{{.version}}`, `1.0`, `v_1.0`},
+		{`v{{.version}}`, `1.0-relise`, `v1.0-relise`},
+		{`v{{.versio}}`, `1.0`, `v1.0`},
+		{`{{.version}}`, `1.0`, `1.0`},
+		{``, `1.0`, `v1.0`},
+	}
+	for _, test := range tests {
+		result := madeСaptionToTemplate(test.template, test.version)
+		if result != test.result {
+			t.Errorf("template: %q, version: %q\nwant: %q, got: %q", test.template, test.version, result, test.result)
+		}
+	}
 }
