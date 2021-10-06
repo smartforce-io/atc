@@ -190,7 +190,10 @@ func TestConfiguredPushAction(t *testing.T) {
 	}{
 		{`path: projectA/pom.xml`, `projectA/pom.xml`},
 		{`path: projectA/contents/pom.xml`, `projectA/contents/pom.xml`},
-		{`path: pom.xml`, `pom.xml`},
+		{`path: gradle.properties`, `gradle.properties`},
+		{`path: contents/gradle.properties`, `contents/gradle.properties`},
+		{`path: .npmrc`, `.npmrc`},
+		{`path: contents/.npmrc`, `contents/.npmrc`},
 	}
 
 	p := github.WebHookPayload{}
@@ -208,6 +211,16 @@ func TestConfiguredPushAction(t *testing.T) {
 	})
 
 	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		receivedUrl = req.URL.String()
+		return defaultFn(req)
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_GRADLE", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		receivedUrl = req.URL.String()
+		return defaultFn(req)
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_NPM", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		receivedUrl = req.URL.String()
 		return defaultFn(req)
 	})

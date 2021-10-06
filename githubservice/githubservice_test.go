@@ -30,6 +30,22 @@ const (
 	<version>5</version>
 </project>
 `
+	oldGradle = `
+version=4
+org.gradle.caching=true
+`
+	newGradle = `
+version=5
+org.gradle.caching=true
+`
+	oldNpm = `
+npm config set init.version "4"
+npm config set init.license "MIT"
+`
+	newNpm = `
+npm config set init.version "5"
+npm config set init.license "MIT"
+`
 )
 
 func mockContentResponse(content string) string {
@@ -165,6 +181,38 @@ func DefaultMockClientProvider() *mockClientProvider {
 			},
 			func(req *http.Request) *http.Response {
 				return newTestResponse(201, `{}`)
+			},
+		},
+		"GET_OLD_VERSION_GRADLE": {
+			func(req *http.Request) bool {
+				return strings.Contains(req.URL.String(), "gradle.properties?ref=")
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(oldGradle))
+			},
+		},
+		"GET_NEW_VERSION_GRADLE": {
+			func(req *http.Request) bool {
+				return strings.Contains(req.URL.String(), "gradle.properties")
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(newGradle))
+			},
+		},
+		"GET_OLD_VERSION_NPM": {
+			func(req *http.Request) bool {
+				return strings.Contains(req.URL.String(), ".npmrc?ref=")
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(oldNpm))
+			},
+		},
+		"GET_NEW_VERSION_NPM": {
+			func(req *http.Request) bool {
+				return strings.Contains(req.URL.String(), ".npmrc")
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(newNpm))
 			},
 		},
 	}
