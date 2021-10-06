@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
+	"regexp"
 	"testing"
 
 	"github.com/smartforce-io/atc/envvars"
@@ -168,12 +168,11 @@ func TestPushActionBasic(t *testing.T) {
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		commentCreated = true
-		log.Println(req.Body)
+		log.Println("req.Body: ", req.Body)
 		json := getBodyJson(req)
 		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
-
 	PushAction(&p, mockClientProviderPtr)
 
 	if !commentCreated {
@@ -185,7 +184,14 @@ func TestPushActionBasic(t *testing.T) {
 
 }
 func TestConfiguredPushAction(t *testing.T) {
-	var withConfiguredPath = "path: projectA/pom.xml"
+	var testsConfigPath = []struct {
+		confString      string
+		expectedUrlPath string
+	}{
+		{`path: projectA/pom.xml`, `projectA/pom.xml`},
+		{`path: projectA/contents/pom.xml`, `projectA/contents/pom.xml`},
+		{`path: pom.xml`, `pom.xml`},
+	}
 
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -194,22 +200,31 @@ func TestConfiguredPushAction(t *testing.T) {
 
 	mockClientProviderPtr := DefaultMockClientProvider()
 
-	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(200, mockContentResponse(withConfiguredPath))
-	})
-
 	var receivedUrl string
+	var config string
+
+	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(200, mockContentResponse(config))
+	})
 
 	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		receivedUrl = req.URL.String()
 		return defaultFn(req)
 	})
 
-	PushAction(&p, mockClientProviderPtr)
+	for _, test := range testsConfigPath {
+		config = test.confString
+		PushAction(&p, mockClientProviderPtr)
 
-	if !strings.Contains(receivedUrl, "projectA/pom.xml") {
-		t.Errorf("Config is not used\n")
+		matched, err := regexp.MatchString(test.expectedUrlPath, receivedUrl)
+		if err != nil {
+			t.Errorf("regexp error: %s", err)
+		}
+		if !matched {
+			t.Errorf("Config is not used:\nexpecredUrl: %s, receivedUrl: %s", test.expectedUrlPath, receivedUrl)
+		}
 	}
+
 }
 func TestMissedOldVersion(t *testing.T) {
 	p := github.WebHookPayload{}
@@ -222,7 +237,6 @@ func TestMissedOldVersion(t *testing.T) {
 	commentCreated := false
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		//func not go there
 		commentCreated = true
 		return defaultFn(req)
 	})
@@ -262,8 +276,17 @@ func TestMissedNewVersion(t *testing.T) {
 		t.Errorf("Comment should not be created\n")
 	}
 }
-func TestConfiguredTagPrefix(t *testing.T) {
-	var withConfiguredPath = "prefix: n"
+func TestConfiguredTagTemplate(t *testing.T) {
+	var testsConfigTemplate = []struct {
+		confString      string
+		expectedMessage string
+		expectedTag     string
+	}{
+		{`template: v{{.version}}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
+		{`template: vTest{{.version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
+		{`template: vVv{.version}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
+		{`template: `, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
+	}
 
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -272,13 +295,13 @@ func TestConfiguredTagPrefix(t *testing.T) {
 
 	mockClientProviderPtr := DefaultMockClientProvider()
 
-	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(200, mockContentResponse(withConfiguredPath))
-	})
-	expectedMessage := `Added a new version for "Codertocat/Hello-World": "v5"`
-	expectedTag := "v5"
 	var message string
 	var tag string
+	var config string
+
+	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(200, mockContentResponse(config))
+	})
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		json := getBodyJson(req)
@@ -291,16 +314,62 @@ func TestConfiguredTagPrefix(t *testing.T) {
 		return defaultFn(req)
 	})
 
-	PushAction(&p, mockClientProviderPtr)
+	for _, test := range testsConfigTemplate {
+		config = test.confString
 
-	if tag != expectedTag {
-		t.Errorf("Wrong tag! expected: %s, got: %s\n", expectedTag, tag)
+		PushAction(&p, mockClientProviderPtr)
+
+		if tag != test.expectedTag {
+			t.Errorf("Wrong tag! expected: %s, got: %s\n", test.expectedTag, tag)
+		}
+
+		if message != test.expectedMessage {
+			t.Errorf("Wrong commit comment! expected: %s, got: %s\n", test.expectedMessage, message)
+		}
 	}
 
-	if message != expectedMessage {
-		t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
+}
+
+func TestConfiguredTagBehavior(t *testing.T) {
+	var testsConfigBehavior = []struct {
+		confString  string
+		expectedSha string
+	}{
+		{`behavior: after`, `0000000000000000000000000000000000000000`},
+		{`behavior: before`, `6113728f27ae82c7b1a177c8d03f9e96e0adf246`},
+		{`behavior: bef`, `0000000000000000000000000000000000000000`},
+		{`behavior: `, `0000000000000000000000000000000000000000`},
 	}
 
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	var sha string
+	var config string
+
+	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(200, mockContentResponse(config))
+	})
+
+	mockClientProviderPtr.overrideResponseFn("ADD_TAG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		json := getBodyJson(req)
+		sha = fmt.Sprintf("%v", json["object"])
+		return defaultFn(req)
+	})
+
+	for _, test := range testsConfigBehavior {
+		config = test.confString
+
+		PushAction(&p, mockClientProviderPtr)
+
+		if sha != test.expectedSha {
+			t.Errorf("Wrong sha! confString: %s\nexpected: %s, got: %s\n", test.confString, test.expectedSha, sha)
+		}
+	}
 }
 
 func TestMadeСaptionToTemplate(t *testing.T) {
