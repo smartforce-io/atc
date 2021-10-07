@@ -241,7 +241,7 @@ func TestConfiguredPushAction(t *testing.T) {
 	}
 
 }
-func TestMissedOldVersion(t *testing.T) {
+func TestMissedOldVersionNoConfig(t *testing.T) {
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
 
@@ -274,7 +274,47 @@ func TestMissedOldVersion(t *testing.T) {
 		t.Errorf("Comment wasn't created\n")
 	}
 }
-func TestMissedNewVersion(t *testing.T) {
+func TestMissedOldVersionWithConfig(t *testing.T) {
+	var testsMissVersion = []struct {
+		confString                string
+		defMockClientPrKeyVersion string
+	}{
+		{"path: projectA/pom.xml", "GET_OLD_VERSION_MAVEN"},
+		{"path: gradle.properties", "GET_OLD_VERSION_GRADLE"},
+		{"path: .npmrc", "GET_OLD_VERSION_NPM"},
+	}
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	commentCreated := false
+
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		commentCreated = true
+		return defaultFn(req)
+	})
+
+	for _, test := range testsMissVersion {
+		mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+			return newTestResponse(200, mockContentResponse(test.confString))
+		})
+
+		mockClientProviderPtr.overrideResponseFn(test.defMockClientPrKeyVersion, func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+			return newTestResponse(404, "not found")
+		})
+
+		PushAction(&p, mockClientProviderPtr)
+
+		if commentCreated {
+			t.Errorf("Comment should not be created\n")
+		}
+	}
+}
+
+func TestMissedNewVersionNoConfig(t *testing.T) {
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
 
@@ -305,6 +345,46 @@ func TestMissedNewVersion(t *testing.T) {
 
 	if commentCreated {
 		t.Errorf("Comment should not be created\n")
+	}
+}
+
+func TestMissedNewVersionWithConfig(t *testing.T) {
+	var testsMissVersion = []struct {
+		confString                string
+		defMockClientPrKeyVersion string
+	}{
+		{"path: projectA/pom.xml", "GET_NEW_VERSION_MAVEN"},
+		{"path: gradle.properties", "GET_NEW_VERSION_GRADLE"},
+		{"path: .npmrc", "GET_NEW_VERSION_NPM"},
+	}
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	commentCreated := false
+
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		commentCreated = true
+		return defaultFn(req)
+	})
+
+	for _, test := range testsMissVersion {
+		mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+			return newTestResponse(200, mockContentResponse(test.confString))
+		})
+
+		mockClientProviderPtr.overrideResponseFn(test.defMockClientPrKeyVersion, func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+			return newTestResponse(404, "not found")
+		})
+
+		PushAction(&p, mockClientProviderPtr)
+
+		if commentCreated {
+			t.Errorf("Comment should not be created\n")
+		}
 	}
 }
 func TestConfiguredTagTemplate(t *testing.T) {
