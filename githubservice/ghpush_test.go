@@ -194,6 +194,8 @@ func TestConfiguredPushAction(t *testing.T) {
 		{`path: contents/gradle.properties`, `contents/gradle.properties`},
 		{`path: .npmrc`, `.npmrc`},
 		{`path: contents/.npmrc`, `contents/.npmrc`},
+		//{`path: asd.txt`, ``},
+		{`path: `, ``},
 	}
 
 	p := github.WebHookPayload{}
@@ -210,7 +212,7 @@ func TestConfiguredPushAction(t *testing.T) {
 		return newTestResponse(200, mockContentResponse(config))
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_MAVEN", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		receivedUrl = req.URL.String()
 		return defaultFn(req)
 	})
@@ -254,7 +256,15 @@ func TestMissedOldVersion(t *testing.T) {
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_MAVEN", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_GRADLE", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_NPM", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		return newTestResponse(404, "not found")
 	})
 
@@ -279,7 +289,15 @@ func TestMissedNewVersion(t *testing.T) {
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_MAVEN", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_GRADLE", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_NPM", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		return newTestResponse(404, "not found")
 	})
 
@@ -297,6 +315,7 @@ func TestConfiguredTagTemplate(t *testing.T) {
 	}{
 		{`template: v{{.version}}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
 		{`template: vTest{{.version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
+		//{`template: {{ .version}}Vte`, `Added a new version for "Codertocat/Hello-World": "5Vte"`, `5Vte`},
 		{`template: vVv{.version}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
 		{`template: `, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
 	}
