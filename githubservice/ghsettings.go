@@ -57,6 +57,7 @@ func checkSettingsForErrors(settings *AtcSettings) error {
 		return errors.New(`error config file .atc.yaml: template no contains "{{.version}}"`)
 	}
 	return nil
+}
 
 func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
 	settings := &AtcSettings{}
@@ -68,7 +69,7 @@ func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
 	}
 
 	if err := unmarshal([]byte(content), settings); err != nil {
-		return nil, err
+		return nil, errors.New(`error config file .atc.yaml; can't unmarshal file; check your configurate file`)
 	}
 
 	if err := checkSettingsForErrors(settings); err != nil {

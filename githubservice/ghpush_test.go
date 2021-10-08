@@ -163,7 +163,7 @@ func TestPushActionBasic(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
-	expectedMessage := `Added a new version for "Codertocat/Hello-World": "v5"`
+	expectedMessage := "File .atc.yaml not found. Used default settings.\nAdded a new version for \"Codertocat/Hello-World\": \"v5\""
 	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
@@ -187,15 +187,18 @@ func TestConfiguredPushAction(t *testing.T) {
 	var testsConfigPath = []struct {
 		confString      string
 		expectedUrlPath string
+		messageError    string
 	}{
-		{`path: projectA/pom.xml`, `projectA/pom.xml`},
-		{`path: projectA/contents/pom.xml`, `projectA/contents/pom.xml`},
-		{`path: gradle.properties`, `gradle.properties`},
-		{`path: contents/gradle.properties`, `contents/gradle.properties`},
-		{`path: .npmrc`, `.npmrc`},
-		{`path: contents/.npmrc`, `contents/.npmrc`},
-		//{`path: asd.txt`, ``},
-		{`path: `, ``},
+		{`path: projectA/pom.xml`, `projectA/pom.xml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: projectA/contents/pom.xml`, `projectA/contents/pom.xml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: gradle.properties`, `gradle.properties`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: contents/gradle.properties`, `contents/gradle.properties`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: .npmrc`, `.npmrc`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: contents/.npmrc`, `contents/.npmrc`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: /projectA/pom.xml`, ``, `error config file .atc.yaml; path has prefix "/"`},
+		{`path: contents//gradle.properties`, ``, `error config file .atc.yaml; path has "//"`},
+		{`path: asd.txt`, ``, `error config file .atc.yaml: path no has suffix "pom.xml" or "gradle.properties" or ".npmrc"`},
+		{`path: `, ``, `error config file .atc.yaml; path = ""; check your configurate file`},
 	}
 
 	p := github.WebHookPayload{}
@@ -207,9 +210,16 @@ func TestConfiguredPushAction(t *testing.T) {
 
 	var receivedUrl string
 	var config string
+	var message string
 
 	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		return newTestResponse(200, mockContentResponse(config))
+	})
+
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		json := getBodyJson(req)
+		message = fmt.Sprintf("%v", json["body"])
+		return defaultFn(req)
 	})
 
 	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_MAVEN", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
@@ -228,7 +238,13 @@ func TestConfiguredPushAction(t *testing.T) {
 	})
 
 	for _, test := range testsConfigPath {
-		config = test.confString
+		config = fmt.Sprintf(`
+%s
+behavior: before
+template: v{{.version}}`, test.confString)
+		receivedUrl = ""
+		message = ""
+
 		PushAction(&p, mockClientProviderPtr)
 
 		matched, err := regexp.MatchString(test.expectedUrlPath, receivedUrl)
@@ -236,12 +252,15 @@ func TestConfiguredPushAction(t *testing.T) {
 			t.Errorf("regexp error: %s", err)
 		}
 		if !matched {
-			t.Errorf("Config is not used:\nexpecredUrl: %s, receivedUrl: %s", test.expectedUrlPath, receivedUrl)
+			t.Errorf("Config:%s is not used:\nexpectedUrl: %s, receivedUrl: %s", test.confString, test.expectedUrlPath, receivedUrl)
+		}
+		if message != test.messageError {
+			t.Errorf("Error config: %s\nexpectedErrorMessage: %s, got: %s", test.confString, test.messageError, message)
 		}
 	}
 
 }
-func TestMissedOldVersionNoConfig(t *testing.T) {
+func TestMissedOldNewVersionNoConfig(t *testing.T) {
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
 
@@ -250,9 +269,13 @@ func TestMissedOldVersionNoConfig(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
+	expectedMessage := "File .atc.yaml not found. Not found supported package manager."
+	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		commentCreated = true
+		json := getBodyJson(req)
+		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
 
@@ -270,8 +293,12 @@ func TestMissedOldVersionNoConfig(t *testing.T) {
 
 	PushAction(&p, mockClientProviderPtr)
 
-	if commentCreated {
+	if !commentCreated {
 		t.Errorf("Comment wasn't created\n")
+	}
+
+	if message != expectedMessage {
+		t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
 	}
 }
 func TestMissedOldVersionWithConfig(t *testing.T) {
@@ -279,9 +306,18 @@ func TestMissedOldVersionWithConfig(t *testing.T) {
 		confString                string
 		defMockClientPrKeyVersion string
 	}{
-		{"path: projectA/pom.xml", "GET_OLD_VERSION_MAVEN"},
-		{"path: gradle.properties", "GET_OLD_VERSION_GRADLE"},
-		{"path: .npmrc", "GET_OLD_VERSION_NPM"},
+		{`
+path: projectA/pom.xml
+behavior: before
+template: v{{.version}}`, "GET_OLD_VERSION_MAVEN"},
+		{`
+path: gradle.properties
+behavior: after
+template: v{{.version}}v`, "GET_OLD_VERSION_GRADLE"},
+		{`
+path: .npmrc
+behavior: before
+template: v{{.version}}VVtest`, "GET_OLD_VERSION_NPM"},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -291,9 +327,13 @@ func TestMissedOldVersionWithConfig(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
+	expectedMessage := "config file with old version not found"
+	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		commentCreated = true
+		json := getBodyJson(req)
+		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
 
@@ -305,11 +345,16 @@ func TestMissedOldVersionWithConfig(t *testing.T) {
 		mockClientProviderPtr.overrideResponseFn(test.defMockClientPrKeyVersion, func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 			return newTestResponse(404, "not found")
 		})
+		message = ""
 
 		PushAction(&p, mockClientProviderPtr)
 
-		if commentCreated {
+		if !commentCreated {
 			t.Errorf("Comment should not be created\n")
+		}
+
+		if message != expectedMessage {
+			t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
 		}
 	}
 }
@@ -323,9 +368,13 @@ func TestMissedNewVersionNoConfig(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
+	expectedMessage := "File .atc.yaml not found. Not found supported package manager."
+	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		commentCreated = true
+		json := getBodyJson(req)
+		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
 
@@ -343,8 +392,12 @@ func TestMissedNewVersionNoConfig(t *testing.T) {
 
 	PushAction(&p, mockClientProviderPtr)
 
-	if commentCreated {
-		t.Errorf("Comment should not be created\n")
+	if !commentCreated {
+		t.Errorf("Comment wasn't created\n")
+	}
+
+	if message != expectedMessage {
+		t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
 	}
 }
 
@@ -353,9 +406,18 @@ func TestMissedNewVersionWithConfig(t *testing.T) {
 		confString                string
 		defMockClientPrKeyVersion string
 	}{
-		{"path: projectA/pom.xml", "GET_NEW_VERSION_MAVEN"},
-		{"path: gradle.properties", "GET_NEW_VERSION_GRADLE"},
-		{"path: .npmrc", "GET_NEW_VERSION_NPM"},
+		{`
+path: projectA/pom.xml
+behavior: before
+template: v{{.version}}`, "GET_NEW_VERSION_MAVEN"},
+		{`
+path: gradle.properties
+behavior: after
+template: v{{.version}}v`, "GET_NEW_VERSION_GRADLE"},
+		{`
+path: .npmrc
+behavior: before
+template: v{{.version}}VVtest`, "GET_NEW_VERSION_NPM"},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -365,9 +427,13 @@ func TestMissedNewVersionWithConfig(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
+	expectedMessage := "config file with new version not found"
+	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		commentCreated = true
+		json := getBodyJson(req)
+		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
 
@@ -379,11 +445,16 @@ func TestMissedNewVersionWithConfig(t *testing.T) {
 		mockClientProviderPtr.overrideResponseFn(test.defMockClientPrKeyVersion, func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 			return newTestResponse(404, "not found")
 		})
+		message = ""
 
 		PushAction(&p, mockClientProviderPtr)
 
-		if commentCreated {
+		if !commentCreated {
 			t.Errorf("Comment should not be created\n")
+		}
+
+		if message != expectedMessage {
+			t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
 		}
 	}
 }
@@ -395,9 +466,9 @@ func TestConfiguredTagTemplate(t *testing.T) {
 	}{
 		{`template: v{{.version}}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
 		{`template: vTest{{.version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
-		//{`template: {{ .version}}Vte`, `Added a new version for "Codertocat/Hello-World": "5Vte"`, `5Vte`},
-		{`template: vVv{.version}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
-		{`template: `, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
+		{`template: {{ .version}}Vte`, `error config file .atc.yaml; can't unmarshal file; check your configurate file`, ``}, // new unmarshal???
+		{`template: vVv{.version}`, `error config file .atc.yaml: template no contains "{{.version}}"`, ``},
+		{`template: `, `error config file .atc.yaml; template = ""; check your configurate file`, ``},
 	}
 
 	p := github.WebHookPayload{}
@@ -427,7 +498,13 @@ func TestConfiguredTagTemplate(t *testing.T) {
 	})
 
 	for _, test := range testsConfigTemplate {
-		config = test.confString
+		config = fmt.Sprintf(`
+path: contents/pom.xml
+behavior: before
+%s`, test.confString)
+
+		message = ""
+		tag = ""
 
 		PushAction(&p, mockClientProviderPtr)
 
@@ -436,7 +513,7 @@ func TestConfiguredTagTemplate(t *testing.T) {
 		}
 
 		if message != test.expectedMessage {
-			t.Errorf("Wrong commit comment! expected: %s, got: %s\n", test.expectedMessage, message)
+			t.Errorf("Wrong commit comment! confString: %s\nexpected: %s, got: %s\n", test.confString, test.expectedMessage, message)
 		}
 	}
 
@@ -449,8 +526,8 @@ func TestConfiguredTagBehavior(t *testing.T) {
 	}{
 		{`behavior: after`, `0000000000000000000000000000000000000000`},
 		{`behavior: before`, `6113728f27ae82c7b1a177c8d03f9e96e0adf246`},
-		{`behavior: bef`, `0000000000000000000000000000000000000000`},
-		{`behavior: `, `0000000000000000000000000000000000000000`},
+		{`behavior: bef`, `no_sha`},
+		{`behavior: `, `no_sha`},
 	}
 
 	p := github.WebHookPayload{}
@@ -460,8 +537,11 @@ func TestConfiguredTagBehavior(t *testing.T) {
 
 	mockClientProviderPtr := DefaultMockClientProvider()
 
-	var sha string
 	var config string
+	var sha string
+	var message string
+	errorMessageEmtry := `error config file .atc.yaml; behavior = ""; check your configurate file`
+	errorMessage := `error config file .atc.yaml: behavior no contains "before" or "after"`
 
 	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		return newTestResponse(200, mockContentResponse(config))
@@ -473,13 +553,26 @@ func TestConfiguredTagBehavior(t *testing.T) {
 		return defaultFn(req)
 	})
 
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		json := getBodyJson(req)
+		message = fmt.Sprintf("%v", json["body"])
+		return defaultFn(req)
+	})
+
 	for _, test := range testsConfigBehavior {
-		config = test.confString
+		config = fmt.Sprintf(`
+path: contents/pom.xml
+%s
+template: v{{.version}}`, test.confString)
+
+		sha = ""
 
 		PushAction(&p, mockClientProviderPtr)
 
 		if sha != test.expectedSha {
-			t.Errorf("Wrong sha! confString: %s\nexpected: %s, got: %s\n", test.confString, test.expectedSha, sha)
+			if message != errorMessage && message != errorMessageEmtry {
+				t.Errorf("Wrong sha! confString: %s\nexpected: %s, got: %s\n", test.confString, test.expectedSha, sha)
+			}
 		}
 	}
 }

@@ -11,12 +11,9 @@ func failingAtcSettingsUnmarshal(content []byte, atcSettingsPtr *AtcSettings) er
 }
 
 var basicConfig = `
-type: maven
-path: /contests/pom.xml
+path: contests/pom.xml
 behavior: before
-template: v{{.version}}
-//prefix: n
-`
+template: v{{.version}}`
 
 func TestBasicAtcSetting(t *testing.T) {
 
@@ -29,18 +26,11 @@ func TestBasicAtcSetting(t *testing.T) {
 		{`
 path: contents/pom.xml
 behavior: before
-template: v{{.version}}
-`, `contents/pom.xml`, `before`, `v{{.version}}`},
+template: v{{.version}}`, `contents/pom.xml`, `before`, `v{{.version}}`},
 		{`
 path: gradle.properties
 behavior: after
-template: vGR{{.version}}
-`, `gradle.properties`, `after`, `vGR{{.version}}`},
-		{`
-path: 
-behavior: 
-template: 
-`, ``, ``, ``},
+template: vGR{{.version}}`, `gradle.properties`, `after`, `vGR{{.version}}`},
 	}
 
 	cp := mockContentProvider{basicConfig, nil}
@@ -74,15 +64,15 @@ func TestCheckSettingsForErrors(t *testing.T) {
 		//configFileData   string
 		expectedErrorStr string
 	}{
-		{"", "", "", `error .atc.yaml; path = ""; check your configurate file`},
-		{"/contents/pom.xml", "", "", `error .atc.yaml; path has prefix "/"`},
-		{"contents//asd.txt", "", "", `error .atc.yaml; path has "//"`},
-		{"contents/asd.txt", "", "", `error .atc.yaml: path no has suffix "pom.xml" or "gradle.properties" or ".npmrc"`},
-		{"contents/pom.xml", "", "", `error .atc.yaml; behavior = ""; check your configurate file`},
-		{"contents/pom.xml/", "bef", "", `error .atc.yaml: behavior no contains "before" or "after"`},
-		{"contents/pom.xml", "after", "", `error .atc.yaml; template = ""; check your configurate file`},
-		{"contents/pom.xml", "after", "{.version}", `error .atc.yaml: template no contains "{{.version}}"`},
-		{"contents/pom.xml", "before", ".vers", `error .atc.yaml: template no contains "{{.version}}"`},
+		{"", "", "", `error config file .atc.yaml; path = ""; check your configurate file`},
+		{"/contents/pom.xml", "", "", `error config file .atc.yaml; path has prefix "/"`},
+		{"contents//asd.txt", "", "", `error config file .atc.yaml; path has "//"`},
+		{"contents/asd.txt", "", "", `error config file .atc.yaml: path no has suffix "pom.xml" or "gradle.properties" or ".npmrc"`},
+		{"contents/pom.xml", "", "", `error config file .atc.yaml; behavior = ""; check your configurate file`},
+		{"contents/pom.xml/", "bef", "", `error config file .atc.yaml: behavior no contains "before" or "after"`},
+		{"contents/pom.xml", "after", "", `error config file .atc.yaml; template = ""; check your configurate file`},
+		{"contents/pom.xml", "after", "{.version}", `error config file .atc.yaml: template no contains "{{.version}}"`},
+		{"contents/pom.xml", "before", ".vers", `error config file .atc.yaml: template no contains "{{.version}}"`},
 		{"contents/pom.xml", "before", "v{{.version}}V", fmt.Sprint(nil)},
 	}
 
@@ -90,7 +80,7 @@ func TestCheckSettingsForErrors(t *testing.T) {
 		settings := &AtcSettings{test.path, test.behavior, test.template}
 		err := checkSettingsForErrors(settings)
 		if fmt.Sprint(err) != test.expectedErrorStr {
-			t.Errorf("no takes error settings:%s\n, expected: %s, got: %s", settings, test.expectedErrorStr, err)
+			t.Errorf("no takes error settings:%s\nexpected: %s, got: %s", settings, test.expectedErrorStr, err)
 		}
 	}
 
@@ -107,17 +97,18 @@ func TestUnmarshalDefault(t *testing.T) {
 	}
 
 }
-func TestAtcSettingGeneralError(t *testing.T) {
-	cp := mockContentProvider{content: "", err: errGeneral}
-	set, err := getAtcSetting(&cp)
 
-	fmt.Printf("t: %v\n", set)
+// func TestAtcSettingGeneralError(t *testing.T) {
+// 	cp := mockContentProvider{content: "", err: errGeneral}
+// 	set, err := getAtcSetting(&cp)
 
-	if err != errGeneral {
-		t.Errorf("Invalid error, Got %v, wanted %v", err, errGeneral)
-	}
+// 	fmt.Printf("t: %v\n", set)
 
-}
+// 	if err != errGeneral {
+// 		t.Errorf("Invalid error, Got %v, wanted %v", err, errGeneral)
+// 	}
+
+// }
 
 func TestAtcSettingUnmarshalError(t *testing.T) {
 	unmarshalcp := unmarshal
@@ -127,7 +118,7 @@ func TestAtcSettingUnmarshalError(t *testing.T) {
 	cp := mockContentProvider{basicConfig, nil}
 	_, err := getAtcSetting(&cp)
 
-	if err != errUnmarshal {
+	if fmt.Sprint(err) != `error config file .atc.yaml; can't unmarshal file; check your configurate file` {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, errUnmarshal)
 	}
 

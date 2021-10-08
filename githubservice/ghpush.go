@@ -81,13 +81,10 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 			var err error
 			var reqError *RequestError
 			fetcher := autoFetchers[fetchType]
-			if fetcher == nil {
-				log.Printf("Error: non support Path = %q", settings.Path)
-				return
-			}
 			oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, settings.Path)
 			if err != nil && err != errHttpStatusCode { //ignore http api error
 				log.Printf("get prev version error for %q: %v", fullname, err)
+				addComment(client, owner, repo, push.GetAfter(), "config file with old version not found")
 				return
 			}
 			newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, settings.Path)
@@ -96,6 +93,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 					log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
 				} else {
 					log.Printf("get version error for %q: %v", fullname, err)
+					addComment(client, owner, repo, push.GetAfter(), "config file with new version not found")
 				}
 				return
 			}
