@@ -30,6 +30,22 @@ const (
 	<version>5</version>
 </project>
 `
+	oldGradle = `
+version=4
+org.gradle.caching=true
+`
+	newGradle = `
+version=5
+org.gradle.caching=true
+`
+	oldNpm = `
+npm config set init.version "4"
+npm config set init.license "MIT"
+`
+	newNpm = `
+npm config set init.version "5"
+npm config set init.license "MIT"
+`
 )
 
 func mockContentResponse(content string) string {
@@ -120,20 +136,76 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return newTestResponse(404, "not found")
 			},
 		},
-		"GET_OLD_VERSION": {
+		"GET_OLD_VERSION_MAVEN": {
 			func(req *http.Request) bool {
-				return strings.Contains(req.URL.String(), "pom.xml?ref=")
+				matched, err := regexp.MatchString("pom\\.xml\\?ref=", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
 			},
 			func(req *http.Request) *http.Response {
 				return newTestResponse(200, mockContentResponse(oldPomXml))
 			},
 		},
-		"GET_NEW_VERSION": {
+		"GET_NEW_VERSION_MAVEN": {
 			func(req *http.Request) bool {
-				return strings.Contains(req.URL.String(), "pom.xml")
+				matched, err := regexp.MatchString("pom\\.xml$", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
 			},
 			func(req *http.Request) *http.Response {
 				return newTestResponse(200, mockContentResponse(newPomXml))
+			},
+		},
+		"GET_OLD_VERSION_GRADLE": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("gradle\\.properties\\?ref=", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(oldGradle))
+			},
+		},
+		"GET_NEW_VERSION_GRADLE": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("gradle\\.properties$", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(newGradle))
+			},
+		},
+		"GET_OLD_VERSION_NPM": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("\\.npmrc\\?ref=", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(oldNpm))
+			},
+		},
+		"GET_NEW_VERSION_NPM": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("\\.npmrc$", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(newNpm))
 			},
 		},
 		"ADD_TAG": {

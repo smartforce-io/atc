@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
+	"regexp"
 	"testing"
 
 	"github.com/smartforce-io/atc/envvars"
@@ -163,17 +163,16 @@ func TestPushActionBasic(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
-	expectedMessage := `Added a new version for "Codertocat/Hello-World": "5"`
+	expectedMessage := `Added a new version for "Codertocat/Hello-World": "v5"`
 	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		commentCreated = true
-		log.Println(req.Body)
+		log.Println("req.Body: ", req.Body)
 		json := getBodyJson(req)
 		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
-
 	PushAction(&p, mockClientProviderPtr)
 
 	if !commentCreated {
@@ -185,7 +184,19 @@ func TestPushActionBasic(t *testing.T) {
 
 }
 func TestConfiguredPushAction(t *testing.T) {
-	var withConfiguredPath = "path: projectA/pom.xml"
+	var testsConfigPath = []struct {
+		confString      string
+		expectedUrlPath string
+	}{
+		{`path: projectA/pom.xml`, `projectA/pom.xml`},
+		{`path: projectA/contents/pom.xml`, `projectA/contents/pom.xml`},
+		{`path: gradle.properties`, `gradle.properties`},
+		{`path: contents/gradle.properties`, `contents/gradle.properties`},
+		{`path: .npmrc`, `.npmrc`},
+		{`path: contents/.npmrc`, `contents/.npmrc`},
+		//{`path: asd.txt`, ``},
+		{`path: `, ``},
+	}
 
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -194,24 +205,43 @@ func TestConfiguredPushAction(t *testing.T) {
 
 	mockClientProviderPtr := DefaultMockClientProvider()
 
+	var receivedUrl string
+	var config string
+
 	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(200, mockContentResponse(withConfiguredPath))
+		return newTestResponse(200, mockContentResponse(config))
 	})
 
-	var receivedUrl string
-
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_MAVEN", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		receivedUrl = req.URL.String()
 		return defaultFn(req)
 	})
 
-	PushAction(&p, mockClientProviderPtr)
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_GRADLE", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		receivedUrl = req.URL.String()
+		return defaultFn(req)
+	})
 
-	if !strings.Contains(receivedUrl, "projectA/pom.xml") {
-		t.Errorf("Config is not used\n")
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_NPM", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		receivedUrl = req.URL.String()
+		return defaultFn(req)
+	})
+
+	for _, test := range testsConfigPath {
+		config = test.confString
+		PushAction(&p, mockClientProviderPtr)
+
+		matched, err := regexp.MatchString(test.expectedUrlPath, receivedUrl)
+		if err != nil {
+			t.Errorf("regexp error: %s", err)
+		}
+		if !matched {
+			t.Errorf("Config is not used:\nexpecredUrl: %s, receivedUrl: %s", test.expectedUrlPath, receivedUrl)
+		}
 	}
+
 }
-func TestMissedOldVersion(t *testing.T) {
+func TestMissedOldVersionNoConfig(t *testing.T) {
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
 
@@ -226,17 +256,33 @@ func TestMissedOldVersion(t *testing.T) {
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_MAVEN", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_GRADLE", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_NPM", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		return newTestResponse(404, "not found")
 	})
 
 	PushAction(&p, mockClientProviderPtr)
 
-	if !commentCreated {
+	if commentCreated {
 		t.Errorf("Comment wasn't created\n")
 	}
 }
-func TestMissedNewVersion(t *testing.T) {
+func TestMissedOldVersionWithConfig(t *testing.T) {
+	var testsMissVersion = []struct {
+		confString                string
+		defMockClientPrKeyVersion string
+	}{
+		{"path: projectA/pom.xml", "GET_OLD_VERSION_MAVEN"},
+		{"path: gradle.properties", "GET_OLD_VERSION_GRADLE"},
+		{"path: .npmrc", "GET_OLD_VERSION_NPM"},
+	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
 
@@ -251,7 +297,47 @@ func TestMissedNewVersion(t *testing.T) {
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	for _, test := range testsMissVersion {
+		mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+			return newTestResponse(200, mockContentResponse(test.confString))
+		})
+
+		mockClientProviderPtr.overrideResponseFn(test.defMockClientPrKeyVersion, func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+			return newTestResponse(404, "not found")
+		})
+
+		PushAction(&p, mockClientProviderPtr)
+
+		if commentCreated {
+			t.Errorf("Comment should not be created\n")
+		}
+	}
+}
+
+func TestMissedNewVersionNoConfig(t *testing.T) {
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	commentCreated := false
+
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		commentCreated = true
+		return defaultFn(req)
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_MAVEN", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_GRADLE", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_NPM", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		return newTestResponse(404, "not found")
 	})
 
@@ -261,8 +347,58 @@ func TestMissedNewVersion(t *testing.T) {
 		t.Errorf("Comment should not be created\n")
 	}
 }
-func TestConfiguredTagPrefix(t *testing.T) {
-	var withConfiguredPath = "prefix: n"
+
+func TestMissedNewVersionWithConfig(t *testing.T) {
+	var testsMissVersion = []struct {
+		confString                string
+		defMockClientPrKeyVersion string
+	}{
+		{"path: projectA/pom.xml", "GET_NEW_VERSION_MAVEN"},
+		{"path: gradle.properties", "GET_NEW_VERSION_GRADLE"},
+		{"path: .npmrc", "GET_NEW_VERSION_NPM"},
+	}
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	commentCreated := false
+
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		commentCreated = true
+		return defaultFn(req)
+	})
+
+	for _, test := range testsMissVersion {
+		mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+			return newTestResponse(200, mockContentResponse(test.confString))
+		})
+
+		mockClientProviderPtr.overrideResponseFn(test.defMockClientPrKeyVersion, func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+			return newTestResponse(404, "not found")
+		})
+
+		PushAction(&p, mockClientProviderPtr)
+
+		if commentCreated {
+			t.Errorf("Comment should not be created\n")
+		}
+	}
+}
+func TestConfiguredTagTemplate(t *testing.T) {
+	var testsConfigTemplate = []struct {
+		confString      string
+		expectedMessage string
+		expectedTag     string
+	}{
+		{`template: v{{.version}}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
+		{`template: vTest{{.version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
+		//{`template: {{ .version}}Vte`, `Added a new version for "Codertocat/Hello-World": "5Vte"`, `5Vte`},
+		{`template: vVv{.version}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
+		{`template: `, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
+	}
 
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -271,13 +407,13 @@ func TestConfiguredTagPrefix(t *testing.T) {
 
 	mockClientProviderPtr := DefaultMockClientProvider()
 
-	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(200, mockContentResponse(withConfiguredPath))
-	})
-	expectedMessage := `Added a new version for "Codertocat/Hello-World": "n5"`
-	expectedTag := "n5"
 	var message string
 	var tag string
+	var config string
+
+	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(200, mockContentResponse(config))
+	})
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		json := getBodyJson(req)
@@ -290,14 +426,82 @@ func TestConfiguredTagPrefix(t *testing.T) {
 		return defaultFn(req)
 	})
 
-	PushAction(&p, mockClientProviderPtr)
+	for _, test := range testsConfigTemplate {
+		config = test.confString
 
-	if tag != expectedTag {
-		t.Errorf("Wrong tag! expected: %s, got: %s\n", expectedTag, tag)
+		PushAction(&p, mockClientProviderPtr)
+
+		if tag != test.expectedTag {
+			t.Errorf("Wrong tag! expected: %s, got: %s\n", test.expectedTag, tag)
+		}
+
+		if message != test.expectedMessage {
+			t.Errorf("Wrong commit comment! expected: %s, got: %s\n", test.expectedMessage, message)
+		}
 	}
 
-	if message != expectedMessage {
-		t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
+}
+
+func TestConfiguredTagBehavior(t *testing.T) {
+	var testsConfigBehavior = []struct {
+		confString  string
+		expectedSha string
+	}{
+		{`behavior: after`, `0000000000000000000000000000000000000000`},
+		{`behavior: before`, `6113728f27ae82c7b1a177c8d03f9e96e0adf246`},
+		{`behavior: bef`, `0000000000000000000000000000000000000000`},
+		{`behavior: `, `0000000000000000000000000000000000000000`},
 	}
 
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	var sha string
+	var config string
+
+	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(200, mockContentResponse(config))
+	})
+
+	mockClientProviderPtr.overrideResponseFn("ADD_TAG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		json := getBodyJson(req)
+		sha = fmt.Sprintf("%v", json["object"])
+		return defaultFn(req)
+	})
+
+	for _, test := range testsConfigBehavior {
+		config = test.confString
+
+		PushAction(&p, mockClientProviderPtr)
+
+		if sha != test.expectedSha {
+			t.Errorf("Wrong sha! confString: %s\nexpected: %s, got: %s\n", test.confString, test.expectedSha, sha)
+		}
+	}
+}
+
+func TestMadeСaptionToTemplate(t *testing.T) {
+	var tests = []struct {
+		template string
+		version  string
+		result   string
+	}{
+		{`v{{.version}}`, `1.0`, `v1.0`},
+		{`vNN{{.version}}`, `1.0`, `vNN1.0`},
+		{`v_{{.version}}`, `1.0`, `v_1.0`},
+		{`v{{.version}}`, `1.0-relise`, `v1.0-relise`},
+		{`v{{.versio}}`, `1.0`, `v1.0`},
+		{`{{.version}}`, `1.0`, `1.0`},
+		{``, `1.0`, `v1.0`},
+	}
+	for _, test := range tests {
+		result := madeСaptionToTemplate(test.template, test.version)
+		if result != test.result {
+			t.Errorf("template: %q, version: %q\nwant: %q, got: %q", test.template, test.version, result, test.result)
+		}
+	}
 }

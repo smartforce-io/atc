@@ -57,7 +57,6 @@ func checkSettingsForErrors(settings *AtcSettings) error {
 		return errors.New(`error config file .atc.yaml: template no contains "{{.version}}"`)
 	}
 	return nil
-}
 
 func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
 	settings := &AtcSettings{}
