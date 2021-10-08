@@ -68,91 +68,96 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 	}
 
 	settings, err := getAtcSetting(ghNewContentProviderPtr)
+	commitComment := ""
 	if err != nil {
-		settings = &AtcSettings{} //blank settings
-	}
-
-	newVersion := ""
-	oldVersion := ""
-	fetchType := detectFetchType(settings.Path)
-
-	if fetchType != "" {
-		var err error
-		var reqError *RequestError
-		fetcher := autoFetchers[fetchType]
-		if fetcher == nil {
-			log.Printf("Error: non support Path = %q", settings.Path)
-			return
-		}
-		oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, settings.Path)
-		if err != nil && err != errHttpStatusCode { //ignore http api error
-			log.Printf("get prev version error for %q: %v", fullname, err)
-			return
-		}
-		newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, settings.Path)
-		if err != nil {
-			if err == errHttpStatusCode {
-				log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
-			} else {
-				log.Printf("get version error for %q: %v", fullname, err)
-			}
-			return
-		}
+		commitComment := fmt.Sprint(err)
+		addComment(client, owner, repo, push.GetAfter(), commitComment)
 	} else {
-		fetched := false
-		for defaultPath, fetcher := range autoFetchers {
+		newVersion := ""
+		oldVersion := ""
+		fetchType := detectFetchType(settings.Path)
+
+		if fetchType != "" {
 			var err error
-			oldVersion, err = fetcher.GetVersionDefaultPath(ghOldContentProviderPtr)
+			var reqError *RequestError
+			fetcher := autoFetchers[fetchType]
+			if fetcher == nil {
+				log.Printf("Error: non support Path = %q", settings.Path)
+				return
+			}
+			oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, settings.Path)
 			if err != nil && err != errHttpStatusCode { //ignore http api error
 				log.Printf("get prev version error for %q: %v", fullname, err)
-				continue
+				return
+			}
+			newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, settings.Path)
+			if err != nil {
+				if err == errHttpStatusCode {
+					log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
+				} else {
+					log.Printf("get version error for %q: %v", fullname, err)
+				}
+				return
+			}
+		} else {
+			commitComment = "File .atc.yaml not found. "
+			fetched := false
+			for defaultPath, fetcher := range autoFetchers {
+				var err error
+				oldVersion, err = fetcher.GetVersionDefaultPath(ghOldContentProviderPtr)
+				if err != nil && err != errHttpStatusCode { //ignore http api error
+					log.Printf("get prev version error for %q: %v", fullname, err)
+					continue
+				}
+
+				newVersion, err = fetcher.GetVersionDefaultPath(ghNewContentProviderPtr)
+
+				if err == nil {
+					fetched = true
+					commitComment += "Used default settings.\n"
+					break
+				} else {
+					log.Printf("autofetcher error for %q: %v", defaultPath, err)
+				}
+			}
+			if !fetched {
+				commitComment += "Not found supported package manager."
+				addComment(client, owner, repo, push.GetAfter(), commitComment)
+				log.Printf("Unable to fetch version using known methods!") //probably should be comment
+				return
+			}
+		}
+
+		if newVersion != oldVersion {
+			log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
+
+			caption := madeСaptionToTemplate(settings.Template, newVersion)
+			sha := madeShaToBehavior(push, settings.Behavior)
+			objType := "commit"
+			timestamp := time.Now()
+
+			tag := &github.Tag{
+				Tag:     &caption,
+				Message: &caption,
+				Tagger: &github.CommitAuthor{
+					Date:  &timestamp,
+					Name:  push.GetPusher().Name,
+					Email: push.GetPusher().Email,
+					Login: push.GetPusher().Login,
+				},
+				Object: &github.GitObject{
+					Type: &objType,
+					SHA:  &sha,
+				},
 			}
 
-			newVersion, err = fetcher.GetVersionDefaultPath(ghNewContentProviderPtr)
-
-			if err == nil {
-				fetched = true
-				break
-			} else {
-				log.Printf("autofetcher error for %q: %v", defaultPath, err)
+			if err := addTagToCommit(client, owner, repo, tag); err != nil {
+				log.Printf("addTagToCommit Error for %q: %v", fullname, err)
+				return
 			}
+
+			commitComment += fmt.Sprintf("Added a new version for %q: %q", fullname, caption)
+			addComment(client, owner, repo, sha, commitComment)
 		}
-		if !fetched {
-			log.Printf("Unable to fetch version using known methods!") //probably should be comment
-			return
-		}
-
-	}
-
-	if newVersion != oldVersion {
-		log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
-
-		caption := madeСaptionToTemplate(settings.Template, newVersion)
-		sha := madeShaToBehavior(push, settings.Behavior)
-		objType := "commit"
-		timestamp := time.Now()
-
-		tag := &github.Tag{
-			Tag:     &caption,
-			Message: &caption,
-			Tagger: &github.CommitAuthor{
-				Date:  &timestamp,
-				Name:  push.GetPusher().Name,
-				Email: push.GetPusher().Email,
-				Login: push.GetPusher().Login,
-			},
-			Object: &github.GitObject{
-				Type: &objType,
-				SHA:  &sha,
-			},
-		}
-
-		if err := addTagToCommit(client, owner, repo, tag); err != nil {
-			log.Printf("addTagToCommit Error for %q: %v", fullname, err)
-			return
-		}
-
-		cmnt := fmt.Sprintf("Added a new version for %q: %q", fullname, caption)
-		addComment(client, owner, repo, sha, cmnt)
 	}
 }
