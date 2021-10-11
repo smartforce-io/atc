@@ -84,7 +84,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 			oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, settings.Path)
 			if err != nil && err != errHttpStatusCode { //ignore http api error
 				log.Printf("get prev version error for %q: %v", fullname, err)
-				addComment(client, owner, repo, push.GetAfter(), "config file with old version not found")
+				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version not found", fetchType))
 				return
 			}
 			newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, settings.Path)
@@ -93,7 +93,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 					log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
 				} else {
 					log.Printf("get version error for %q: %v", fullname, err)
-					addComment(client, owner, repo, push.GetAfter(), "config file with new version not found")
+					addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with new version not found", fetchType))
 				}
 				return
 			}
@@ -112,7 +112,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 
 				if err == nil {
 					fetched = true
-					commitComment += "Used default settings.\n"
+					commitComment += "Used default settings. "
 					break
 				} else {
 					log.Printf("autofetcher error for %q: %v", defaultPath, err)
@@ -151,6 +151,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 
 			if err := addTagToCommit(client, owner, repo, tag); err != nil {
 				log.Printf("addTagToCommit Error for %q: %v", fullname, err)
+				addComment(client, owner, repo, sha, fmt.Sprintf("can't add tag to commit, error : %v", err))
 				return
 			}
 

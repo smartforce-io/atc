@@ -13,4 +13,5 @@ func addComment(client *github.Client, owner, repo, sha, text string) {
 	}); err != nil {
 		log.Printf("add comment error for %s/%s: %v", owner, repo, err)
 	}
+	log.Printf("add comment: %s", text)
 }

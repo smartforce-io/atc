@@ -25,7 +25,7 @@ func checkSettingsForErrors(settings *AtcSettings) error {
 	pathSuffix := [3]string{"pom.xml", "gradle.properties", ".npmrc"}
 
 	if settings.Path == "" {
-		return errors.New(`error config file .atc.yaml; path = ""; check your configurate file`)
+		return errors.New(`error config file .atc.yaml; path = ""`)
 	}
 	if strings.HasPrefix(settings.Path, pathPrefix) {
 		return errors.New(`error config file .atc.yaml; path has prefix "/"`)
@@ -44,14 +44,14 @@ func checkSettingsForErrors(settings *AtcSettings) error {
 	}
 	//check Behavior:
 	if settings.Behavior == "" {
-		return errors.New(`error config file .atc.yaml; behavior = ""; check your configurate file`)
+		return errors.New(`error config file .atc.yaml; behavior = ""`)
 	}
 	if strings.ToLower(settings.Behavior) != "after" && strings.ToLower(settings.Behavior) != "before" {
 		return errors.New(`error config file .atc.yaml: behavior no contains "before" or "after"`)
 	}
 	//check Template:
 	if settings.Template == "" {
-		return errors.New(`error config file .atc.yaml; template = ""; check your configurate file`)
+		return errors.New(`error config file .atc.yaml; template = ""`)
 	}
 	if !strings.Contains(settings.Template, `{{.version}}`) {
 		return errors.New(`error config file .atc.yaml: template no contains "{{.version}}"`)
@@ -64,12 +64,12 @@ func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
 
 	content, err := ghcp.getContents(".atc.yaml")
 	if err != nil {
-		log.Printf("get .atc.yaml error: %s\nUsed default settings", err)
+		log.Printf("get .atc.yaml error: %s. Used default settings", err)
 		return settings, nil
 	}
 
 	if err := unmarshal([]byte(content), settings); err != nil {
-		return nil, errors.New(`error config file .atc.yaml; can't unmarshal file; check your configurate file`)
+		return nil, errors.New(`error config file .atc.yaml; can't unmarshal file`)
 	}
 
 	if err := checkSettingsForErrors(settings); err != nil {

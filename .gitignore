@@ -9,3 +9,4 @@ src/golang.org/
 **/coverage.txt
 src/gopkg.in/
 .vscode/launch.json
+.vscode/settings.json

@@ -50,7 +50,7 @@ npm config set init.license "MIT"
 
 func mockContentResponse(content string) string {
 	response := fmt.Sprintf(`{"content" : "%s", "size": %d, "encoding":"base64"}`, base64.StdEncoding.EncodeToString([]byte(content)), len(content))
-	log.Println(response)
+	// log.Println(response)
 	return response
 }
 
@@ -213,7 +213,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return strings.Contains(req.URL.String(), "/git/tags")
 			},
 			func(req *http.Request) *http.Response {
-				log.Println(req.Body)
+				log.Println("ADD_TAG req.Body: ", req.Body)
 				jsonMap := getBodyJson(req)
 
 				return newTestResponse(201, fmt.Sprintf(`{"tag":"%s", "sha":"940bd336248efae0f9ee5bc7b2d5c985887b16ac"}`, jsonMap["tag"]))
@@ -247,7 +247,7 @@ func (mockClientProvider *mockClientProvider) Get(token string, ctx context.Cont
 	client := NewTestClient(func(req *http.Request) *http.Response {
 		for _, eval := range mockClientProvider.evaluations {
 			if eval.conditionFn(req) {
-				log.Println(req.URL.String())
+				log.Println("req.URL: ", req.URL.String())
 				return eval.responseFn(req)
 			}
 		}
