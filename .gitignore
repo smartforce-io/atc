@@ -10,3 +10,5 @@ src/golang.org/
 src/gopkg.in/
 .vscode/launch.json
 .vscode/settings.json
+
+dist/
