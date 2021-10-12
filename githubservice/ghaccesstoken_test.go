@@ -2,6 +2,7 @@ package githubservice
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"testing"
 
@@ -38,6 +39,13 @@ func TestGetAccessTokenBasic(t *testing.T) {
 
 func TestErrorGetPemFromPemPathVariable(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
+	//create atcTestEmpty.pem for test
+	file, err := os.Create("atcTestEmpty.pem")
+	if err != nil {
+		t.Error(err)
+	}
+	log.Println("create file atcTestEmpte.pem")
+	file.Close()
 
 	var tests = []struct {
 		envvarsPem  string
@@ -45,7 +53,7 @@ func TestErrorGetPemFromPemPathVariable(t *testing.T) {
 	}{
 		{"", "path to .pem is empty"},
 		{"atcTest.pem", "open atcTest.pem: no such file or directory"},
-		{"../../atcTestEmpty.pem", "no .pem file"},
+		{"atcTestEmpty.pem", "no .pem file"},
 	}
 	for _, test := range tests {
 		os.Setenv(envvars.PemPathVariable, test.envvarsPem)
@@ -57,5 +65,11 @@ func TestErrorGetPemFromPemPathVariable(t *testing.T) {
 	}
 	//clear changes env for next tests
 	os.Setenv(envvars.PemPathVariable, "")
+	//del atcTestEmpty.pem for this test
+	err = os.Remove("atcTestEmpty.pem")
+	if err != nil {
+		t.Error(err)
+	}
+	log.Println("delete file atcTestEmpte.pem")
 
 }
