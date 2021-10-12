@@ -1,0 +1,32 @@
+name: Go
+
+on:
+  push:
+    branches: [ issue-3_addGHActions ]
+  pull_request:
+    branches: [ issue-3 ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.16
+
+    - name: Build
+      run: go build -v ./...
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: TestsWebhook
+      run: go test -coverprofile=tests_cover.html -v ./apiserver
+
+    - name: TestsGitHubService
+      run: go test -coverprofile=tests_cover.html -v ./githubservice
