@@ -2,6 +2,8 @@ name: goreleaser
 
 on:
   push:
+    branches:
+      - 'issue-3_addGHActions'
     tags:
       - 'v*'
 
