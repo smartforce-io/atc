@@ -8,3 +8,4 @@ src/golang.org/
 **/.env
 **/coverage.txt
 src/gopkg.in/
+.vscode/launch.json
