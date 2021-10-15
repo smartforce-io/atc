@@ -53,8 +53,8 @@ func checkSettingsForErrors(settings *AtcSettings) error {
 	if settings.Template == "" {
 		return errors.New(`error config file .atc.yaml; template = ""`)
 	}
-	if !strings.Contains(settings.Template, `{{.version}}`) {
-		return errors.New(`error config file .atc.yaml: template no contains "{{.version}}"`)
+	if !strings.Contains(settings.Template, `{{.Version}}`) {
+		return errors.New(`error config file .atc.yaml: template no contains "{{.Version}}"`)
 	}
 	return nil
 }

@@ -35,21 +35,20 @@ func TestErrorGetVersionNpm(t *testing.T) {
 	cp := mockContentProvider{"", noContentErr}
 	nf := &npmrcFetcher{}
 	//test error get contents
-	_, err := nf.GetVersion(&cp, "npm")
+	err := nf.GetVersion(&cp, "npm", &TagVersion{})
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error get contents when use DefaultPath
-	_, err = nf.GetVersionDefaultPath(&cp)
+	err = nf.GetVersionDefaultPath(&cp, &TagVersion{})
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error can't search verion
 	noVersErr := ".npmrc does not containt number version"
 	cp.err = nil
-	_, err = nf.GetVersion(&cp, "npm")
+	err = nf.GetVersion(&cp, "npm", &TagVersion{})
 	if fmt.Sprint(err) != noVersErr {
 		t.Errorf("err:%s  !=  noVersErr:%s", err, noVersErr)
 	}
-
 }

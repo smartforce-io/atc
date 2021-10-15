@@ -19,7 +19,7 @@ func (maskResponseWriter *maskResponseWriter) Header() http.Header {
 
 func (maskResponseWriter *maskResponseWriter) Write(bytes []byte) (int, error) {
 	maskResponseWriter.status = string(bytes)
-	return 200, nil
+	return http.StatusOK, nil
 }
 
 func (maskResponseWriter *maskResponseWriter) WriteHeader(statusCode int) {
@@ -35,12 +35,9 @@ func TestWebhook(t *testing.T) {
 		expectedStatus     string
 		expectedStatusCode int
 	}{
-		{"delete", "", "success", 200},
-		{"create", "", "success", 200},
-		{"marketplace_purchase", "marketplace_body", "", 200},
-		{"push", `{"installation": {"id": 8}}`, "", 200},
-		{"def", "", "This webhook is undefined yet.", 404},
-		{"", "", "This webhook is undefined yet.", 404},
+		{"push", `{"installation": {"id": 8}}`, "", http.StatusOK},
+		{"def", "", "This webhook is undefined yet.", http.StatusNotFound},
+		{"", "", "This webhook is undefined yet.", http.StatusNotFound},
 	}
 
 	for _, test := range tests {
@@ -58,7 +55,5 @@ func TestWebhook(t *testing.T) {
 		if resp.statusCode != test.expectedStatusCode {
 			t.Errorf("wrong webhook! statusCode error event: %q; expected:%d, got:%d", test.event, test.expectedStatusCode, resp.statusCode)
 		}
-
 	}
-
 }

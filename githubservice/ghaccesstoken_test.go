@@ -2,7 +2,6 @@ package githubservice
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"testing"
 
@@ -21,8 +20,9 @@ const (
 
 func TestGetAccessTokenBasic(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
-
+	envvarsPemDataOld := envvars.PemData
 	os.Setenv(envvars.PemData, testRsaKey)
+	defer os.Setenv(envvars.PemData, envvarsPemDataOld)
 
 	token, err := getAccessToken(10, mockClientProviderPtr)
 
@@ -33,18 +33,21 @@ func TestGetAccessTokenBasic(t *testing.T) {
 	if token != expected {
 		t.Errorf("Unexpected token, expected %s, got %s", expected, token)
 	}
-	//clear changes env for next tests
-	os.Setenv(envvars.PemData, "")
 }
 
 func TestErrorGetPemFromPemPathVariable(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
+	envvarsPemDataOld := envvars.PemData
+	envvarsPemPathOld := envvars.PemPathVariable
+	os.Setenv(envvars.PemData, "")
+	defer os.Setenv(envvars.PemData, envvarsPemDataOld)
+	defer os.Setenv(envvars.PemPathVariable, envvarsPemPathOld)
+
 	//create atcTestEmpty.pem for test
 	file, err := os.Create("atcTestEmpty.pem")
 	if err != nil {
 		t.Error(err)
 	}
-	log.Println("create file atcTestEmpte.pem")
 	file.Close()
 
 	var tests = []struct {
@@ -63,13 +66,9 @@ func TestErrorGetPemFromPemPathVariable(t *testing.T) {
 			t.Errorf("No get err with PemPathVariable = \"%s\"\nexpectedErr: \"%v\", got: \"%v\"", test.envvarsPem, test.expectedErr, err)
 		}
 	}
-	//clear changes env for next tests
-	os.Setenv(envvars.PemPathVariable, "")
 	//del atcTestEmpty.pem for this test
 	err = os.Remove("atcTestEmpty.pem")
 	if err != nil {
 		t.Error(err)
 	}
-	log.Println("delete file atcTestEmpte.pem")
-
 }

@@ -181,7 +181,6 @@ func TestPushActionBasic(t *testing.T) {
 	if message != expectedMessage {
 		t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
 	}
-
 }
 func TestConfiguredPushAction(t *testing.T) {
 	var testsConfigPath = []struct {
@@ -241,7 +240,7 @@ func TestConfiguredPushAction(t *testing.T) {
 		config = fmt.Sprintf(`
 %s
 behavior: before
-template: v{{.version}}`, test.confString)
+template: v{{.Version}}`, test.confString)
 		receivedUrl = ""
 		message = ""
 
@@ -258,8 +257,8 @@ template: v{{.version}}`, test.confString)
 			t.Errorf("Error config: %s\nexpectedErrorMessage: %s, got: %s", test.confString, test.messageError, message)
 		}
 	}
-
 }
+
 func TestMissedOldNewVersionNoConfig(t *testing.T) {
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -301,6 +300,7 @@ func TestMissedOldNewVersionNoConfig(t *testing.T) {
 		t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
 	}
 }
+
 func TestMissedOldVersionWithConfig(t *testing.T) {
 	var testsMissVersion = []struct {
 		confString                string
@@ -310,15 +310,15 @@ func TestMissedOldVersionWithConfig(t *testing.T) {
 		{`
 path: projectA/pom.xml
 behavior: before
-template: v{{.version}}`, "GET_OLD_VERSION_MAVEN", "file pom.xml with old version not found"},
+template: v{{.Version}}`, "GET_OLD_VERSION_MAVEN", "file pom.xml with old version not found"},
 		{`
 path: gradle.properties
 behavior: after
-template: v{{.version}}v`, "GET_OLD_VERSION_GRADLE", "file gradle.properties with old version not found"},
+template: v{{.Version}}v`, "GET_OLD_VERSION_GRADLE", "file gradle.properties with old version not found"},
 		{`
 path: .npmrc
 behavior: before
-template: v{{.version}}VVtest`, "GET_OLD_VERSION_NPM", "file .npmrc with old version not found"},
+template: v{{.Version}}VVtest`, "GET_OLD_VERSION_NPM", "file .npmrc with old version not found"},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -410,15 +410,15 @@ func TestMissedNewVersionWithConfig(t *testing.T) {
 		{`
 path: projectA/pom.xml
 behavior: before
-template: v{{.version}}`, "GET_NEW_VERSION_MAVEN", "file pom.xml with new version not found"},
+template: v{{.Version}}`, "GET_NEW_VERSION_MAVEN", "file pom.xml with new version not found"},
 		{`
 path: gradle.properties
 behavior: after
-template: v{{.version}}v`, "GET_NEW_VERSION_GRADLE", "file gradle.properties with new version not found"},
+template: v{{.Version}}v`, "GET_NEW_VERSION_GRADLE", "file gradle.properties with new version not found"},
 		{`
 path: .npmrc
 behavior: before
-template: v{{.version}}VVtest`, "GET_NEW_VERSION_NPM", "file .npmrc with new version not found"},
+template: v{{.Version}}VVtest`, "GET_NEW_VERSION_NPM", "file .npmrc with new version not found"},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -458,16 +458,18 @@ template: v{{.version}}VVtest`, "GET_NEW_VERSION_NPM", "file .npmrc with new ver
 		}
 	}
 }
+
 func TestConfiguredTagTemplate(t *testing.T) {
 	var testsConfigTemplate = []struct {
 		confString      string
 		expectedMessage string
 		expectedTag     string
 	}{
-		{`template: v{{.version}}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
-		{`template: vTest{{.version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
-		{`template: {{ .version}}Vte`, `error config file .atc.yaml; can't unmarshal file`, ``}, // new unmarshal???
-		{`template: vVv{.version}`, `error config file .atc.yaml: template no contains "{{.version}}"`, ``},
+		{`template: v{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
+		{`template: v{{.Version}}-{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "v5-5"`, `v5-5`},
+		{`template: vTest{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
+		{`template: {{ .Version}}Vte`, `error config file .atc.yaml; can't unmarshal file`, ``}, // new unmarshal???
+		{`template: vVv{.Version}`, `error config file .atc.yaml: template no contains "{{.Version}}"`, ``},
 		{`template: `, `error config file .atc.yaml; template = ""`, ``},
 	}
 
@@ -516,7 +518,6 @@ behavior: before
 			t.Errorf("Wrong commit comment! confString: %s\nexpected: %s, got: %s\n", test.confString, test.expectedMessage, message)
 		}
 	}
-
 }
 
 func TestConfiguredTagBehavior(t *testing.T) {
@@ -563,7 +564,7 @@ func TestConfiguredTagBehavior(t *testing.T) {
 		config = fmt.Sprintf(`
 path: contents/pom.xml
 %s
-template: v{{.version}}`, test.confString)
+template: v{{.Version}}`, test.confString)
 
 		sha = ""
 
@@ -583,18 +584,33 @@ func TestMadeСaptionToTemplate(t *testing.T) {
 		version  string
 		result   string
 	}{
-		{`v{{.version}}`, `1.0`, `v1.0`},
-		{`vNN{{.version}}`, `1.0`, `vNN1.0`},
-		{`v_{{.version}}`, `1.0`, `v_1.0`},
-		{`v{{.version}}`, `1.0-relise`, `v1.0-relise`},
-		{`v{{.versio}}`, `1.0`, `v1.0`},
-		{`{{.version}}`, `1.0`, `1.0`},
+		{`v{{.Version}}`, `1.0`, `v1.0`},
+		{`vNN{{.Version}}`, `1.0`, `vNN1.0`},
+		{`v_{{.Version}}`, `1.0`, `v_1.0`},
+		{`v{{.Version}}`, `1.0-relise`, `v1.0-relise`},
+		{`{{.Version}}`, `1.0`, `1.0`},
 		{``, `1.0`, `v1.0`},
 	}
 	for _, test := range tests {
-		result := madeСaptionToTemplate(test.template, test.version)
+		result, _ := madeСaptionToTemplate(test.template, TagVersion{test.version})
 		if result != test.result {
-			t.Errorf("template: %q, version: %q\nwant: %q, got: %q", test.template, test.version, result, test.result)
+			t.Errorf("template: %q, version: %q\nwant: %q, got: %q", test.template, test.version, test.result, result)
+		}
+	}
+}
+
+func TestMadeСaptionToTemplateError(t *testing.T) {
+	var tests = []struct {
+		template  string
+		version   string
+		errString string
+	}{
+		{`v{{.Versio}}`, `1.0`, `template: template tagVersion:1:3: executing "template tagVersion" at <.Versio>: can't evaluate field Versio in type githubservice.TagVersion`},
+	}
+	for _, test := range tests {
+		_, err := madeСaptionToTemplate(test.template, TagVersion{test.version})
+		if fmt.Sprint(err) != test.errString {
+			t.Errorf("template: %q, version: %q\nerr want: %v, err got: %v", test.template, test.version, err, test.errString)
 		}
 	}
 }

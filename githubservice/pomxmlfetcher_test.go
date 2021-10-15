@@ -17,28 +17,32 @@ func TestPomXmlFetcherBasic(t *testing.T) {
 
 	cp := mockContentProvider{basicPomXml, nil}
 
-	v, err := fetcher.GetVersion(&cp, "pom.xml")
+	TagVersion := TagVersion{}
+
+	err := fetcher.GetVersion(&cp, "pom.xml", &TagVersion)
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 		return
 	}
 
-	if v != "5" {
-		t.Errorf("wrong settings File! Got %q, wanted %q", v, 5)
+	if TagVersion.Version != "5" {
+		t.Errorf("wrong settings File! Got %q, wanted %q", TagVersion.Version, 5)
 	}
 }
+
 func TestPomXmlFetcherGeneralError(t *testing.T) {
 	fetcher := pomXmlFetcher{}
 
 	cp := mockContentProvider{content: "", err: errGeneral}
 
-	_, err := fetcher.GetVersion(&cp, "pom.xml")
+	err := fetcher.GetVersion(&cp, "pom.xml", &TagVersion{})
 
 	if err != errGeneral {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, errGeneral)
 	}
 }
+
 func TestPomXmlFetcherUnmarshalError(t *testing.T) {
 	fetcher := pomXmlFetcher{}
 
@@ -48,7 +52,7 @@ func TestPomXmlFetcherUnmarshalError(t *testing.T) {
 
 	cp := mockContentProvider{basicPomXml, nil}
 
-	_, err := fetcher.GetVersion(&cp, "pom.xml")
+	err := fetcher.GetVersion(&cp, "pom.xml", &TagVersion{})
 
 	if err != errUnmarshal {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, errUnmarshal)

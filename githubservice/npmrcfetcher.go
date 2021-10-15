@@ -22,18 +22,19 @@ var unmarshalNpmrc = func(content []byte, npmrcPtr *Npmrc) error {
 	return nil
 }
 
-func (npmrcFetcher *npmrcFetcher) GetVersion(ghContentProvider contentProvider, path string) (string, error) {
+func (npmrcFetcher *npmrcFetcher) GetVersion(ghContentProvider contentProvider, path string, tagVersion *TagVersion) error {
 	content, err := ghContentProvider.getContents(path)
 	if err != nil {
-		return "", err
+		return err
 	}
 	npmrc := &Npmrc{}
 	if err := unmarshalNpmrc([]byte(content), npmrc); err != nil {
-		return "", err
+		return err
 	}
-	return npmrc.Version, nil
+	tagVersion.Version = npmrc.Version
+	return nil
 }
 
-func (npmrcFetcher *npmrcFetcher) GetVersionDefaultPath(ghContentProvider contentProvider) (string, error) {
-	return npmrcFetcher.GetVersion(ghContentProvider, ".npmrc")
+func (npmrcFetcher *npmrcFetcher) GetVersionDefaultPath(ghContentProvider contentProvider, tagVersion *TagVersion) error {
+	return npmrcFetcher.GetVersion(ghContentProvider, ".npmrc", tagVersion)
 }
