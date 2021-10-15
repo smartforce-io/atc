@@ -13,7 +13,7 @@ import (
 	"github.com/google/go-github/v39/github"
 )
 
-type TagVersion struct {
+type TagContent struct {
 	Version string
 }
 
@@ -34,18 +34,19 @@ func detectFetchType(path string) string {
 	return filepath.Base(path)
 }
 
-func madeСaptionToTemplate(templateString string, tagVersion TagVersion) (string, error) {
+func madeСaptionToTemplate(templateString, version string) (string, error) {
+	tagContent := TagContent{version}
 	buf := new(bytes.Buffer)
-	tmpl, err := template.New("template tagVersion").Parse(templateString)
+	tmpl, err := template.New("template tagContent").Parse(templateString)
 	if err != nil {
 		return "", err
 	}
-	err = tmpl.Execute(buf, tagVersion)
+	err = tmpl.Execute(buf, tagContent)
 	if err != nil {
 		return "", err
 	}
 	if buf.String() == "" {
-		return "v" + tagVersion.Version, nil
+		return "v" + version, nil
 	}
 	return buf.String(), nil
 }
@@ -91,21 +92,21 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		commitComment := fmt.Sprint(err)
 		addComment(client, owner, repo, push.GetAfter(), commitComment)
 	} else {
-		newVersion := TagVersion{}
-		oldVersion := TagVersion{}
+		newVersion := ""
+		oldVersion := ""
 		fetchType := detectFetchType(settings.Path)
 
 		if fetchType != "" {
 			var err error
 			var reqError *RequestError
 			fetcher := autoFetchers[fetchType]
-			err = fetcher.GetVersion(ghOldContentProviderPtr, settings.Path, &oldVersion)
+			oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, settings.Path)
 			if err != nil && err != errHttpStatusCode { //ignore http api error
 				log.Printf("get prev version error for %q: %v", fullname, err)
 				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version not found", fetchType))
 				return
 			}
-			err = fetcher.GetVersion(ghNewContentProviderPtr, settings.Path, &newVersion)
+			newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, settings.Path)
 			if err != nil {
 				if err == errHttpStatusCode {
 					log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
@@ -120,13 +121,13 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 			fetched := false
 			for defaultPath, fetcher := range autoFetchers {
 				var err error
-				err = fetcher.GetVersionDefaultPath(ghOldContentProviderPtr, &oldVersion)
+				oldVersion, err = fetcher.GetVersionDefaultPath(ghOldContentProviderPtr)
 				if err != nil && err != errHttpStatusCode { //ignore http api error
 					log.Printf("get prev version error for %q: %v", fullname, err)
 					continue
 				}
 
-				err = fetcher.GetVersionDefaultPath(ghNewContentProviderPtr, &newVersion)
+				newVersion, err = fetcher.GetVersionDefaultPath(ghNewContentProviderPtr)
 
 				if err == nil {
 					fetched = true

@@ -36,19 +36,19 @@ func TestErrorGetVersionGradle(t *testing.T) {
 	cp := mockContentProvider{"", noContentErr}
 	gpf := &gradlePropertiesFetcher{}
 	//test error get contents
-	err := gpf.GetVersion(&cp, "gradle", &TagVersion{})
+	_, err := gpf.GetVersion(&cp, "gradle")
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error get contents when use DefaultPath
-	err = gpf.GetVersionDefaultPath(&cp, &TagVersion{})
+	_, err = gpf.GetVersionDefaultPath(&cp)
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error can't search verion
 	noVersErr := "gradle.properties does not containt number version"
 	cp.err = nil
-	err = gpf.GetVersion(&cp, "gradle", &TagVersion{})
+	_, err = gpf.GetVersion(&cp, "gradle")
 	if fmt.Sprint(err) != noVersErr {
 		t.Errorf("err:%s  !=  noVersErr:%s", err, noVersErr)
 	}

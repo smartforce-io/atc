@@ -22,19 +22,18 @@ var unmarshalGradleProperties = func(content []byte, gradlePropertiesPtr *Gradle
 	return nil
 }
 
-func (gradleBuildFetcher *gradlePropertiesFetcher) GetVersion(ghContentProvider contentProvider, path string, tagVersion *TagVersion) error {
+func (gradleBuildFetcher *gradlePropertiesFetcher) GetVersion(ghContentProvider contentProvider, path string) (string, error) {
 	content, err := ghContentProvider.getContents(path)
 	if err != nil {
-		return err
+		return "", err
 	}
 	gradle := &GradleProperties{}
 	if err := unmarshalGradleProperties([]byte(content), gradle); err != nil {
-		return err
+		return "", err
 	}
-	tagVersion.Version = gradle.Version
-	return nil
+	return gradle.Version, nil
 }
 
-func (gradleBuildFetcher *gradlePropertiesFetcher) GetVersionDefaultPath(ghContentProvider contentProvider, tagVersion *TagVersion) error {
-	return gradleBuildFetcher.GetVersion(ghContentProvider, "gradle.properties", tagVersion)
+func (gradleBuildFetcher *gradlePropertiesFetcher) GetVersionDefaultPath(ghContentProvider contentProvider) (string, error) {
+	return gradleBuildFetcher.GetVersion(ghContentProvider, "gradle.properties")
 }
