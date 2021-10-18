@@ -22,9 +22,9 @@ const (
 )
 
 var autoFetchers = map[string]VersionFetcher{
-	"pom.xml":           &pomXmlFetcher{},
-	"gradle.properties": &gradlePropertiesFetcher{},
-	".npmrc":            &npmrcFetcher{},
+	"pom.xml":      &pomXmlFetcher{},
+	"build.gradle": &buildGradleFetcher{},
+	"package.json": &packagejsonFetcher{},
 }
 
 func detectFetchType(path string) string {

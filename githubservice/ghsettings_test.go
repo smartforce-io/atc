@@ -28,9 +28,9 @@ path: contents/pom.xml
 behavior: before
 template: v{{.Version}}`, `contents/pom.xml`, `before`, `v{{.Version}}`},
 		{`
-path: gradle.properties
+path: build.gradle
 behavior: after
-template: vGR{{.Version}}`, `gradle.properties`, `after`, `vGR{{.Version}}`},
+template: vGR{{.Version}}`, `build.gradle`, `after`, `vGR{{.Version}}`},
 	}
 
 	cp := mockContentProvider{basicConfig, nil}
@@ -66,7 +66,7 @@ func TestCheckSettingsForErrors(t *testing.T) {
 		{"", "", "", `error config file .atc.yaml; path = ""`},
 		{"/contents/pom.xml", "", "", `error config file .atc.yaml; path has prefix "/"`},
 		{"contents//asd.txt", "", "", `error config file .atc.yaml; path has "//"`},
-		{"contents/asd.txt", "", "", `error config file .atc.yaml: path no has suffix "pom.xml" or "gradle.properties" or ".npmrc"`},
+		{"contents/asd.txt", "", "", `error config file .atc.yaml: path no has suffix "pom.xml" or "build.gradle" or "package.json"`},
 		{"contents/pom.xml", "", "", `error config file .atc.yaml; behavior = ""`},
 		{"contents/pom.xml/", "bef", "", `error config file .atc.yaml: behavior no contains "before" or "after"`},
 		{"contents/pom.xml", "after", "", `error config file .atc.yaml; template = ""`},
@@ -90,15 +90,15 @@ func TestUnmarshalDefault(t *testing.T) {
 		unexpectedError error
 	}{
 		{`
-path: gradle.properties
+path: build.gradle
 behavior: before
 template: v{{.version}}`, errors.New(``)},
 		{`
-		path: gradle.properties
+		path: build.gradle
 		behavior: before
 		template: v{{.version}}`, nil},
 		{`
-path: gradle.properties
+path: build.gradle
 behavior: before
 template: {{.version}}`, nil},
 		{``, errors.New(``)},

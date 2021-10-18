@@ -31,20 +31,20 @@ const (
 </project>
 `
 	oldGradle = `
-version=4
-org.gradle.caching=true
+versionName "4"
+versionCode 1
 `
 	newGradle = `
-version=5
-org.gradle.caching=true
+versionName "5"
+versionCode 1
 `
 	oldNpm = `
-npm config set init.version "4"
-npm config set init.license "MIT"
+{"version": "4",
+"name": "atc"}
 `
 	newNpm = `
-npm config set init.version "5"
-npm config set init.license "MIT"
+{"version": "5",
+"name": "atc"}
 `
 )
 
@@ -162,7 +162,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_OLD_VERSION_GRADLE": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("gradle\\.properties\\?ref=", req.URL.String())
+				matched, err := regexp.MatchString("build\\.gradle\\?ref=", req.URL.String())
 				if err != nil {
 					return false
 				}
@@ -174,7 +174,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_NEW_VERSION_GRADLE": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("gradle\\.properties$", req.URL.String())
+				matched, err := regexp.MatchString("build\\.gradle$", req.URL.String())
 				if err != nil {
 					return false
 				}
@@ -186,7 +186,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_OLD_VERSION_NPM": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("\\.npmrc\\?ref=", req.URL.String())
+				matched, err := regexp.MatchString("package\\.json\\?ref=", req.URL.String())
 				if err != nil {
 					return false
 				}
@@ -198,7 +198,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_NEW_VERSION_NPM": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("\\.npmrc$", req.URL.String())
+				matched, err := regexp.MatchString("package\\.json$", req.URL.String())
 				if err != nil {
 					return false
 				}
