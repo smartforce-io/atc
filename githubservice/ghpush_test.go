@@ -194,9 +194,11 @@ func TestConfiguredPushAction(t *testing.T) {
 		{`path: contents/build.gradle`, `contents/build.gradle`, `Added a new version for "Codertocat/Hello-World": "v5"`},
 		{`path: package.json`, `package.json`, `Added a new version for "Codertocat/Hello-World": "v5"`},
 		{`path: contents/package.json`, `contents/package.json`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: pubspec.yaml`, `pubspec.yaml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: contents/pubspec.yaml`, `contents/pubspec.yaml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
 		{`path: /projectA/pom.xml`, ``, `error config file .atc.yaml; path has prefix "/"`},
 		{`path: contents//build.gradle`, ``, `error config file .atc.yaml; path has "//"`},
-		{`path: asd.txt`, ``, `error config file .atc.yaml: path no has suffix "pom.xml" or "build.gradle" or "package.json"`},
+		{`path: asd.txt`, ``, `error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`},
 		{`path: `, ``, `error config file .atc.yaml; path = ""`},
 	}
 
@@ -232,6 +234,11 @@ func TestConfiguredPushAction(t *testing.T) {
 	})
 
 	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_NPM", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		receivedUrl = req.URL.String()
+		return defaultFn(req)
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_FLUTTER", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		receivedUrl = req.URL.String()
 		return defaultFn(req)
 	})
@@ -290,6 +297,10 @@ func TestMissedOldNewVersionNoConfig(t *testing.T) {
 		return newTestResponse(404, "not found")
 	})
 
+	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_FLUTTER", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
 	PushAction(&p, mockClientProviderPtr)
 
 	if !commentCreated {
@@ -310,15 +321,19 @@ func TestMissedOldVersionWithConfig(t *testing.T) {
 		{`
 path: projectA/pom.xml
 behavior: before
-template: v{{.Version}}`, "GET_OLD_VERSION_MAVEN", "file pom.xml with old version not found"},
+template: MavenV{{.Version}}`, "GET_OLD_VERSION_MAVEN", "file pom.xml with old version not found"},
 		{`
 path: build.gradle
 behavior: after
-template: v{{.Version}}v`, "GET_OLD_VERSION_GRADLE", "file build.gradle with old version not found"},
+template: GradleV{{.Version}}`, "GET_OLD_VERSION_GRADLE", "file build.gradle with old version not found"},
 		{`
 path: package.json
 behavior: before
-template: v{{.Version}}VVtest`, "GET_OLD_VERSION_NPM", "file package.json with old version not found"},
+template: NPMv{{.Version}}`, "GET_OLD_VERSION_NPM", "file package.json with old version not found"},
+		{`
+path: pubspec.yaml
+behavior: after
+template: FlutterV{{.Version}}`, "GET_OLD_VERSION_FLUTTER", "file pubspec.yaml with old version not found"},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -390,6 +405,10 @@ func TestMissedNewVersionNoConfig(t *testing.T) {
 		return newTestResponse(404, "not found")
 	})
 
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_FLUTTER", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
 	PushAction(&p, mockClientProviderPtr)
 
 	if !commentCreated {
@@ -410,15 +429,19 @@ func TestMissedNewVersionWithConfig(t *testing.T) {
 		{`
 path: projectA/pom.xml
 behavior: before
-template: v{{.Version}}`, "GET_NEW_VERSION_MAVEN", "file pom.xml with new version not found"},
+template: MavenV{{.Version}}`, "GET_NEW_VERSION_MAVEN", "file pom.xml with new version not found"},
 		{`
 path: build.gradle
 behavior: after
-template: v{{.Version}}v`, "GET_NEW_VERSION_GRADLE", "file build.gradle with new version not found"},
+template: GradleV{{.Version}}`, "GET_NEW_VERSION_GRADLE", "file build.gradle with new version not found"},
 		{`
 path: package.json
 behavior: before
-template: v{{.Version}}VVtest`, "GET_NEW_VERSION_NPM", "file package.json with new version not found"},
+template: NPMv{{.Version}}`, "GET_NEW_VERSION_NPM", "file package.json with new version not found"},
+		{`
+path: pubspec.yaml
+behavior: after
+template: FlutterV{{.Version}}`, "GET_NEW_VERSION_FLUTTER", "file pubspec.yaml with new version not found"},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)

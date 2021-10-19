@@ -66,12 +66,12 @@ func TestCheckSettingsForErrors(t *testing.T) {
 		{"", "", "", `error config file .atc.yaml; path = ""`},
 		{"/contents/pom.xml", "", "", `error config file .atc.yaml; path has prefix "/"`},
 		{"contents//asd.txt", "", "", `error config file .atc.yaml; path has "//"`},
-		{"contents/asd.txt", "", "", `error config file .atc.yaml: path no has suffix "pom.xml" or "build.gradle" or "package.json"`},
+		{"contents/asd.txt", "", "", `error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`},
 		{"contents/pom.xml", "", "", `error config file .atc.yaml; behavior = ""`},
 		{"contents/pom.xml/", "bef", "", `error config file .atc.yaml: behavior no contains "before" or "after"`},
-		{"contents/pom.xml", "after", "", `error config file .atc.yaml; template = ""`},
-		{"contents/pom.xml", "after", "{.version}", `error config file .atc.yaml: template no contains "{{.Version}}"`},
-		{"contents/pom.xml", "before", ".vers", `error config file .atc.yaml: template no contains "{{.Version}}"`},
+		{"build.gradle", "after", "", `error config file .atc.yaml; template = ""`},
+		{"package.json", "after", "{.version}", `error config file .atc.yaml: template no contains "{{.Version}}"`},
+		{"pubspec.yaml", "before", ".vers", `error config file .atc.yaml: template no contains "{{.Version}}"`},
 		{"contents/pom.xml", "before", "v{{.Version}}V", fmt.Sprint(nil)},
 	}
 

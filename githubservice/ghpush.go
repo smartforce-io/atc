@@ -25,6 +25,7 @@ var autoFetchers = map[string]VersionFetcher{
 	"pom.xml":      &pomXmlFetcher{},
 	"build.gradle": &buildGradleFetcher{},
 	"package.json": &packagejsonFetcher{},
+	"pubspec.yaml": &pubspecyamlFetcher{},
 }
 
 func detectFetchType(path string) string {

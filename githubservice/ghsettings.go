@@ -22,7 +22,7 @@ type AtcSettings struct {
 func checkSettingsForErrors(settings *AtcSettings) error {
 	//check Path:
 	pathPrefix := "/"
-	pathSuffix := [3]string{"pom.xml", "build.gradle", "package.json"}
+	pathSuffix := [4]string{"pom.xml", "build.gradle", "package.json", "pubspec.yaml"}
 
 	if settings.Path == "" {
 		return errors.New(`error config file .atc.yaml; path = ""`)
@@ -40,7 +40,7 @@ func checkSettingsForErrors(settings *AtcSettings) error {
 		}
 	}
 	if !sufOk {
-		return errors.New(`error config file .atc.yaml: path no has suffix "pom.xml" or "build.gradle" or "package.json"`)
+		return errors.New(`error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`)
 	}
 	//check Behavior:
 	if settings.Behavior == "" {

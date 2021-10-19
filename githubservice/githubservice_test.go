@@ -46,6 +46,14 @@ versionCode 1
 {"version": "5",
 "name": "atc"}
 `
+	oldFlutter = `
+{version: 4,
+name: atc}
+`
+	newFlutter = `
+{version: 5,
+name: atc}
+`
 )
 
 func mockContentResponse(content string) string {
@@ -206,6 +214,30 @@ func DefaultMockClientProvider() *mockClientProvider {
 			},
 			func(req *http.Request) *http.Response {
 				return newTestResponse(200, mockContentResponse(newNpm))
+			},
+		},
+		"GET_OLD_VERSION_FLUTTER": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("pubspec\\.yaml\\?ref=", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(oldFlutter))
+			},
+		},
+		"GET_NEW_VERSION_FLUTTER": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("pubspec\\.yaml$", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(newFlutter))
 			},
 		},
 		"ADD_TAG": {
