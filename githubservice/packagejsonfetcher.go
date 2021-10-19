@@ -24,6 +24,9 @@ func (packagejsonFetcher *packagejsonFetcher) GetVersion(ghContentProvider conte
 	if err := unmarshalPackageJson([]byte(content), packagejson); err != nil {
 		return "", err
 	}
+	if packagejson.Version == "" {
+		return "", errNoVers
+	}
 	return packagejson.Version, nil
 }
 

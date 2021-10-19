@@ -1,7 +1,6 @@
 package githubservice
 
 import (
-	"errors"
 	"regexp"
 )
 
@@ -16,7 +15,7 @@ var unmarshalBuildGradle = func(content []byte, buildGradlePtr *BuildGradle) err
 	regex, _ := regexp.Compile(`versionName "([^\t\n\f\r]+)"`)
 	res := regex.FindStringSubmatch(string(content))
 	if len(res) == 0 {
-		return errors.New("build.gradle does not containt number version")
+		return errNoVers
 	}
 	buildGradlePtr.Version = res[1]
 	return nil

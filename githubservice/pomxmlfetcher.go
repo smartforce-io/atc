@@ -24,6 +24,9 @@ func (pomXmlFetcher *pomXmlFetcher) GetVersion(ghContentProvider contentProvider
 	if err := unmarshalPomXml([]byte(content), pom); err != nil {
 		return "", err
 	}
+	if pom.Version == "" {
+		return "", errNoVers
+	}
 	return pom.Version, nil
 }
 

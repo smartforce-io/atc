@@ -22,6 +22,9 @@ func (pubspecyamlFetcher *pubspecyamlFetcher) GetVersion(ghContentProvider conte
 	if err := unmarshalPubspecYaml([]byte(content), pubspecyaml); err != nil {
 		return "", err
 	}
+	if pubspecyaml.Version == "" {
+		return "", errNoVers
+	}
 	return pubspecyaml.Version, nil
 }
 
