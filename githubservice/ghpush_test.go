@@ -493,7 +493,7 @@ func TestConfiguredTagTemplate(t *testing.T) {
 		{`template: v{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
 		{`template: v{{.Version}}-{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "v5-5"`, `v5-5`},
 		{`template: vTest{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
-		{`template: {{ .Version}}Vte`, `error config file .atc.yaml; can't unmarshal file`, ``}, // new unmarshal???
+		{`template: "{{.Version}}Vte"`, `Added a new version for "Codertocat/Hello-World": "5Vte"`, `5Vte`},
 		{`template: vVv{.Version}`, `error config file .atc.yaml: template no contains "{{.Version}}"`, ``},
 		{`template: `, `error config file .atc.yaml; template = ""`, ``},
 	}

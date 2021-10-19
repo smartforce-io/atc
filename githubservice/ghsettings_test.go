@@ -92,7 +92,7 @@ func TestUnmarshalDefault(t *testing.T) {
 		{`
 path: build.gradle
 behavior: before
-template: v{{.version}}`, errors.New(``)},
+template: "v{{.version}}"`, errors.New(``)},
 		{`
 		path: build.gradle
 		behavior: before
