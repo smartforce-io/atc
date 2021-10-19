@@ -36,9 +36,12 @@ func detectFetchType(path string) string {
 }
 
 func madeСaptionToTemplate(templateString, version string) (string, error) {
-	tagContent := TagContent{version}
 	buf := new(bytes.Buffer)
-	tmpl, err := template.New("template tagContent").Parse(templateString)
+	tagContent := TagContent{version}
+	tmplFuncMap := template.FuncMap{
+		"Time": func() time.Time { return time.Now() },
+	}
+	tmpl, err := template.New("template tagContent").Funcs(tmplFuncMap).Parse(templateString)
 	if err != nil {
 		return "", err
 	}

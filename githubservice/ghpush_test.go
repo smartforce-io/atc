@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/smartforce-io/atc/envvars"
 
@@ -612,6 +614,7 @@ func TestMadeСaptionToTemplate(t *testing.T) {
 		{`v_{{.Version}}`, `1.0`, `v_1.0`},
 		{`v{{.Version}}`, `1.0-relise`, `v1.0-relise`},
 		{`{{.Version}}`, `1.0`, `1.0`},
+		{`Time hour now: {{Time.Hour}}, {{.Version}}`, `1.0`, "Time hour now: " + strconv.Itoa(time.Now().Hour()) + ", 1.0"},
 		{``, `1.0`, `v1.0`},
 	}
 	for _, test := range tests {
