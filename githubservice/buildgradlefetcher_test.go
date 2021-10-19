@@ -64,10 +64,10 @@ func TestUnmarshalErrorBuildGradle(t *testing.T) {
 		content string
 		err     string
 	}{
-		{`versionName = 1.5`, "package manager config file have empty number version"},
-		{`version "1.6"`, "package manager config file have empty number version"},
-		{`v1.1`, "package manager config file have empty number version"},
-		{``, "package manager config file have empty number version"},
+		{`versionName = 1.5`, "empty number version"},
+		{`version "1.6"`, "empty number version"},
+		{`v1.1`, "empty number version"},
+		{``, "empty number version"},
 	}
 	for _, test := range tests {
 		gradle := &BuildGradle{}

@@ -3,7 +3,7 @@ package githubservice
 import "errors"
 
 var (
-	errNoVers = errors.New("package manager config file have empty number version")
+	errNoVers = errors.New("empty number version")
 )
 
 type VersionFetcher interface {
