@@ -20,12 +20,29 @@ type AtcSettings struct {
 }
 
 func checkSettingsForErrors(settings *AtcSettings) error {
+	//check settins to "" and use default value:
+	log.Printf("settings befo check: %s", settings)
+	if settings.Behavior == "" {
+		settings.Behavior = "after"
+	}
+	if settings.Template == "" {
+		settings.Template = "v{{.Version}}"
+	}
+
+	//check Behavior:
+	if strings.ToLower(settings.Behavior) != "after" && strings.ToLower(settings.Behavior) != "before" {
+		return errors.New(`error config file .atc.yaml: behavior no contains "before" or "after"`)
+	}
+	//check Template:
+	if !strings.Contains(settings.Template, `{{.Version}}`) {
+		return errors.New(`error config file .atc.yaml: template no contains "{{.Version}}"`)
+	}
 	//check Path:
 	pathPrefix := "/"
 	pathSuffix := [4]string{"pom.xml", "build.gradle", "package.json", "pubspec.yaml"}
 
 	if settings.Path == "" {
-		return errors.New(`error config file .atc.yaml; path = ""`)
+		return nil
 	}
 	if strings.HasPrefix(settings.Path, pathPrefix) {
 		return errors.New(`error config file .atc.yaml; path has prefix "/"`)
@@ -42,20 +59,6 @@ func checkSettingsForErrors(settings *AtcSettings) error {
 	if !sufOk {
 		return errors.New(`error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`)
 	}
-	//check Behavior:
-	if settings.Behavior == "" {
-		return errors.New(`error config file .atc.yaml; behavior = ""`)
-	}
-	if strings.ToLower(settings.Behavior) != "after" && strings.ToLower(settings.Behavior) != "before" {
-		return errors.New(`error config file .atc.yaml: behavior no contains "before" or "after"`)
-	}
-	//check Template:
-	if settings.Template == "" {
-		return errors.New(`error config file .atc.yaml; template = ""`)
-	}
-	if !strings.Contains(settings.Template, `{{.Version}}`) {
-		return errors.New(`error config file .atc.yaml: template no contains "{{.Version}}"`)
-	}
 	return nil
 }
 
@@ -65,7 +68,7 @@ func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
 	content, err := ghcp.getContents(".atc.yaml")
 	if err != nil {
 		log.Printf("get .atc.yaml error: %s. Used default settings", err)
-		return settings, nil
+		return &AtcSettings{Behavior: "after", Template: "v{{.Version}}"}, nil
 	}
 
 	if err := unmarshal([]byte(content), settings); err != nil {

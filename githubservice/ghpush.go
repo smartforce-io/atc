@@ -49,9 +49,6 @@ func madeСaptionToTemplate(templateString, version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if buf.String() == "" {
-		return "v" + version, nil
-	}
 	return buf.String(), nil
 }
 
@@ -91,6 +88,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 	}
 
 	settings, err := getAtcSetting(ghNewContentProviderPtr)
+	log.Printf("settings: %s", settings)
 	commitComment := ""
 	if err != nil {
 		commitComment := fmt.Sprint(err)
@@ -128,7 +126,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 				return
 			}
 		} else {
-			commitComment = "File .atc.yaml not found. "
+			commitComment = `File .atc.yaml not found or path = "". `
 			fetched := false
 			for defaultPath, fetcher := range autoFetchers {
 				var err error
