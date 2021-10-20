@@ -165,7 +165,7 @@ func TestPushActionBasic(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
-	expectedMessage := "File .atc.yaml not found. Used default settings. Added a new version for \"Codertocat/Hello-World\": \"v5\""
+	expectedMessage := `File .atc.yaml not found or path = "". Used default settings. Added a new version for "Codertocat/Hello-World": "v5"`
 	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
@@ -201,7 +201,7 @@ func TestConfiguredPushAction(t *testing.T) {
 		{`path: /projectA/pom.xml`, ``, `error config file .atc.yaml; path has prefix "/"`},
 		{`path: contents//build.gradle`, ``, `error config file .atc.yaml; path has "//"`},
 		{`path: asd.txt`, ``, `error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`},
-		{`path: `, ``, `error config file .atc.yaml; path = ""`},
+		{`path: `, ``, `File .atc.yaml not found or path = "". Used default settings. Added a new version for "Codertocat/Hello-World": "v5"`},
 	}
 
 	p := github.WebHookPayload{}
@@ -278,7 +278,7 @@ func TestMissedOldNewVersionNoConfig(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
-	expectedMessage := "File .atc.yaml not found. Not found supported package manager."
+	expectedMessage := `File .atc.yaml not found or path = "". Not found supported package manager.`
 	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
@@ -390,7 +390,7 @@ func TestMissedNewVersionNoConfig(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
-	expectedMessage := "File .atc.yaml not found. Not found supported package manager."
+	expectedMessage := `File .atc.yaml not found or path = "". Not found supported package manager.`
 	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
@@ -504,7 +504,7 @@ func TestConfiguredTagTemplate(t *testing.T) {
 		{`template: vTest{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
 		{`template: "{{.Version}}Vte"`, `Added a new version for "Codertocat/Hello-World": "5Vte"`, `5Vte`},
 		{`template: vVv{.Version}`, `error config file .atc.yaml: template no contains "{{.Version}}"`, ``},
-		{`template: `, `error config file .atc.yaml; template = ""`, ``},
+		{`template: `, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
 	}
 
 	p := github.WebHookPayload{}
@@ -562,8 +562,8 @@ func TestConfiguredTagBehavior(t *testing.T) {
 	}{
 		{`behavior: after`, `0000000000000000000000000000000000000000`},
 		{`behavior: before`, `6113728f27ae82c7b1a177c8d03f9e96e0adf246`},
-		{`behavior: bef`, `no_sha`},
-		{`behavior: `, `no_sha`},
+		{`behavior: bef`, `0000000000000000000000000000000000000000`},
+		{`behavior: `, `0000000000000000000000000000000000000000`},
 	}
 
 	p := github.WebHookPayload{}
@@ -626,7 +626,7 @@ func TestMadeСaptionToTemplate(t *testing.T) {
 		{`v{{.Version}}`, `1.0-relise`, `v1.0-relise`},
 		{`{{.Version}}`, `1.0`, `1.0`},
 		{`Time hour now: {{Time.Hour}}, {{.Version}}`, `1.0`, "Time hour now: " + strconv.Itoa(time.Now().Hour()) + ", 1.0"},
-		{``, `1.0`, `v1.0`},
+		{``, `1.0`, ``},
 	}
 	for _, test := range tests {
 		result, _ := madeСaptionToTemplate(test.template, test.version)
