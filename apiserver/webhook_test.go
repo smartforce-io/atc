@@ -57,3 +57,15 @@ func TestWebhook(t *testing.T) {
 		}
 	}
 }
+
+func TestRemoveOrganization(t *testing.T) {
+	oldBody := `"default_branch":"main","stargazers":0,"master_branch":"main","organization":"smartforce-io"},"pusher":{"name"`
+	expectedBody := `"default_branch":"main","stargazers":0,"master_branch":"main"},"pusher":{"name"`
+
+	newBody := removeOrgFromWebhookRequest([]byte(oldBody))
+
+	if expectedBody != string(newBody) {
+		t.Errorf("error remove org, expected: %s, got: %s", expectedBody, newBody)
+	}
+
+}

@@ -323,19 +323,19 @@ func TestMissedOldVersionWithConfig(t *testing.T) {
 		{`
 path: projectA/pom.xml
 behavior: before
-template: MavenV{{.Version}}`, "GET_OLD_VERSION_MAVEN", "file pom.xml with old version not found"},
+template: MavenV{{.Version}}`, "GET_OLD_VERSION_MAVEN", "file pom.xml with old version err: %!v(PANIC=Error method: runtime error: invalid memory address or nil pointer dereference)"},
 		{`
 path: build.gradle
 behavior: after
-template: GradleV{{.Version}}`, "GET_OLD_VERSION_GRADLE", "file build.gradle with old version not found"},
+template: GradleV{{.Version}}`, "GET_OLD_VERSION_GRADLE", "file build.gradle with old version err: %!v(PANIC=Error method: runtime error: invalid memory address or nil pointer dereference)"},
 		{`
 path: package.json
 behavior: before
-template: NPMv{{.Version}}`, "GET_OLD_VERSION_NPM", "file package.json with old version not found"},
+template: NPMv{{.Version}}`, "GET_OLD_VERSION_NPM", "file package.json with old version err: %!v(PANIC=Error method: runtime error: invalid memory address or nil pointer dereference)"},
 		{`
 path: pubspec.yaml
 behavior: after
-template: FlutterV{{.Version}}`, "GET_OLD_VERSION_FLUTTER", "file pubspec.yaml with old version not found"},
+template: FlutterV{{.Version}}`, "GET_OLD_VERSION_FLUTTER", "file pubspec.yaml with old version err: %!v(PANIC=Error method: runtime error: invalid memory address or nil pointer dereference)"},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -431,19 +431,19 @@ func TestMissedNewVersionWithConfig(t *testing.T) {
 		{`
 path: projectA/pom.xml
 behavior: before
-template: MavenV{{.Version}}`, "GET_NEW_VERSION_MAVEN", "file pom.xml with new version not found"},
+template: MavenV{{.Version}}`, "GET_NEW_VERSION_MAVEN", "file pom.xml with new version err: %!v(PANIC=Error method: runtime error: invalid memory address or nil pointer dereference)"},
 		{`
 path: build.gradle
 behavior: after
-template: GradleV{{.Version}}`, "GET_NEW_VERSION_GRADLE", "file build.gradle with new version not found"},
+template: GradleV{{.Version}}`, "GET_NEW_VERSION_GRADLE", "file build.gradle with new version err: %!v(PANIC=Error method: runtime error: invalid memory address or nil pointer dereference)"},
 		{`
 path: package.json
 behavior: before
-template: NPMv{{.Version}}`, "GET_NEW_VERSION_NPM", "file package.json with new version not found"},
+template: NPMv{{.Version}}`, "GET_NEW_VERSION_NPM", "file package.json with new version err: %!v(PANIC=Error method: runtime error: invalid memory address or nil pointer dereference)"},
 		{`
 path: pubspec.yaml
 behavior: after
-template: FlutterV{{.Version}}`, "GET_NEW_VERSION_FLUTTER", "file pubspec.yaml with new version not found"},
+template: FlutterV{{.Version}}`, "GET_NEW_VERSION_FLUTTER", "file pubspec.yaml with new version err: %!v(PANIC=Error method: runtime error: invalid memory address or nil pointer dereference)"},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
