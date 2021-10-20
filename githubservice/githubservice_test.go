@@ -146,7 +146,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_OLD_VERSION_MAVEN": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("pom\\.xml\\?ref=", req.URL.String())
+				matched, err := regexp.MatchString("pom\\.xml\\?ref=[^main]+", req.URL.String())
 				if err != nil {
 					return false
 				}
@@ -158,7 +158,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_NEW_VERSION_MAVEN": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("pom\\.xml$", req.URL.String())
+				matched, err := regexp.MatchString("pom\\.xml\\?ref=main", req.URL.String())
 				if err != nil {
 					return false
 				}
@@ -170,7 +170,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_OLD_VERSION_GRADLE": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("build\\.gradle\\?ref=", req.URL.String())
+				matched, err := regexp.MatchString("build\\.gradle\\?ref=[^main]+", req.URL.String())
 				if err != nil {
 					return false
 				}
@@ -182,7 +182,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_NEW_VERSION_GRADLE": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("build\\.gradle$", req.URL.String())
+				matched, err := regexp.MatchString("build\\.gradle\\?ref=main", req.URL.String())
 				if err != nil {
 					return false
 				}
@@ -194,7 +194,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_OLD_VERSION_NPM": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("package\\.json\\?ref=", req.URL.String())
+				matched, err := regexp.MatchString("package\\.json\\?ref=[^main]+", req.URL.String())
 				if err != nil {
 					return false
 				}
@@ -206,7 +206,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_NEW_VERSION_NPM": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("package\\.json$", req.URL.String())
+				matched, err := regexp.MatchString("package\\.json\\?ref=main", req.URL.String())
 				if err != nil {
 					return false
 				}
@@ -218,7 +218,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_OLD_VERSION_FLUTTER": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("pubspec\\.yaml\\?ref=", req.URL.String())
+				matched, err := regexp.MatchString("pubspec\\.yaml\\?ref=[^main]+", req.URL.String())
 				if err != nil {
 					return false
 				}
@@ -230,7 +230,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 		},
 		"GET_NEW_VERSION_FLUTTER": {
 			func(req *http.Request) bool {
-				matched, err := regexp.MatchString("pubspec\\.yaml$", req.URL.String())
+				matched, err := regexp.MatchString("pubspec\\.yaml\\?ref=main", req.URL.String())
 				if err != nil {
 					return false
 				}

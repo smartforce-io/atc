@@ -17,6 +17,7 @@ type AtcSettings struct {
 	Path     string `json:"path"`
 	Behavior string `json:"behavior"`
 	Template string `json:"template"`
+	Branch   string `json:"branch"`
 }
 
 func checkSettingsForErrors(settings *AtcSettings) error {
@@ -56,6 +57,10 @@ func checkSettingsForErrors(settings *AtcSettings) error {
 	if !strings.Contains(settings.Template, `{{.Version}}`) {
 		return errors.New(`error config file .atc.yaml: template no contains "{{.Version}}"`)
 	}
+	//check Branch:
+	if settings.Branch == "" {
+		return errors.New(`error config file .atc.yaml: branch = ""`)
+	}
 	return nil
 }
 
@@ -75,6 +80,5 @@ func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
 	if err := checkSettingsForErrors(settings); err != nil {
 		return nil, err
 	}
-
 	return settings, nil
 }
