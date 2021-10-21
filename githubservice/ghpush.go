@@ -36,7 +36,6 @@ func detectFetchType(path string) string {
 }
 
 func madeСaptionToTemplate(templateString, version string) (string, error) {
-	log.Printf("madeСaptionToTemplate; tmpl: %s, vers: %s", templateString, version)
 	buf := new(bytes.Buffer)
 	tagContent := TagContent{version}
 	tmplFuncMap := template.FuncMap{
@@ -50,7 +49,6 @@ func madeСaptionToTemplate(templateString, version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	log.Printf("madeСaptionToTemplate; buf: %s", buf.String())
 	return buf.String(), nil
 }
 

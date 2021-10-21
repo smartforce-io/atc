@@ -2,7 +2,6 @@ package githubservice
 
 import (
 	"errors"
-	"log"
 	"regexp"
 )
 
@@ -16,7 +15,6 @@ type userConfigFetcher struct {
 var unmarshalUserConfig = func(content []byte, regexStr string, userConfigPtr *UserConfig) error {
 	regex, _ := regexp.Compile(regexStr)
 	res := regex.FindStringSubmatch(string(content))
-	log.Printf("unmarshalUserConfig, res: %s", res)
 	if len(res) < 2 {
 		return errNoVers
 	}
