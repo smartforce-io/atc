@@ -21,7 +21,7 @@ func TestPackageJsonFetcherBasic(t *testing.T) {
 
 	cp := mockContentProvider{basicPackageJson, nil}
 
-	vers, err := fetcher.GetVersion(&cp, "package.json")
+	vers, err := fetcher.GetVersion(&cp, AtcSettings{Path: "package.json"})
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -80,7 +80,7 @@ func TestErrorGetVersionPackageJson(t *testing.T) {
 	cp := mockContentProvider{"", noContentErr}
 	pjf := &packagejsonFetcher{}
 	//test error get contents
-	_, err := pjf.GetVersion(&cp, "npm")
+	_, err := pjf.GetVersion(&cp, AtcSettings{Path: "npm"})
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
@@ -92,7 +92,7 @@ func TestErrorGetVersionPackageJson(t *testing.T) {
 	//test error can't search verion
 	cp.content = `{"name": "atc"}`
 	cp.err = nil
-	_, err = pjf.GetVersion(&cp, "NPM")
+	_, err = pjf.GetVersion(&cp, AtcSettings{Path: "NPM"})
 	if err != errNoVers {
 		t.Errorf("err:%s  !=  noVersErr:%s", err, errNoVers)
 	}
@@ -107,7 +107,7 @@ func TestPackageJsonFetcherUnmarshalError(t *testing.T) {
 
 	cp := mockContentProvider{"", nil}
 
-	_, err := fetcher.GetVersion(&cp, "package.json")
+	_, err := fetcher.GetVersion(&cp, AtcSettings{Path: "package.json"})
 
 	if err != errUnmarshal {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, errUnmarshal)

@@ -54,6 +54,14 @@ name: atc}
 {version: 5,
 name: atc}
 `
+	oldUserConf = `
+name: testUserConf
+vers: 4
+`
+	newUserConf = `
+name: testUserConf
+vers: 5
+`
 )
 
 func mockContentResponse(content string) string {
@@ -238,6 +246,30 @@ func DefaultMockClientProvider() *mockClientProvider {
 			},
 			func(req *http.Request) *http.Response {
 				return newTestResponse(200, mockContentResponse(newFlutter))
+			},
+		},
+		"GET_OLD_VERSION_USERCONF": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("test\\.txt\\?ref=[^main]+", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(oldUserConf))
+			},
+		},
+		"GET_NEW_VERSION_USERCONF": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("test\\.txt\\?ref=main", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(newUserConf))
 			},
 		},
 		"ADD_TAG": {

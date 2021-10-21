@@ -15,8 +15,8 @@ var unmarshalPomXml = func(content []byte, pomXmlPtr *PomXml) error {
 	return xml.Unmarshal([]byte(content), pomXmlPtr)
 }
 
-func (pomXmlFetcher *pomXmlFetcher) GetVersion(ghContentProvider contentProvider, path string) (string, error) {
-	content, err := ghContentProvider.getContents(path)
+func (pomXmlFetcher *pomXmlFetcher) GetVersion(ghContentProvider contentProvider, settings AtcSettings) (string, error) {
+	content, err := ghContentProvider.getContents(settings.Path)
 	if err != nil {
 		return "", err
 	}
@@ -31,5 +31,5 @@ func (pomXmlFetcher *pomXmlFetcher) GetVersion(ghContentProvider contentProvider
 }
 
 func (pomXmlFetcher *pomXmlFetcher) GetVersionDefaultPath(ghContentProvider contentProvider) (string, error) {
-	return pomXmlFetcher.GetVersion(ghContentProvider, "contents/pom.xml")
+	return pomXmlFetcher.GetVersion(ghContentProvider, AtcSettings{Path: "contents/pom.xml"})
 }

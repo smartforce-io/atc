@@ -36,6 +36,7 @@ func detectFetchType(path string) string {
 }
 
 func madeСaptionToTemplate(templateString, version string) (string, error) {
+	log.Printf("madeСaptionToTemplate; tmpl: %s, vers: %s", templateString, version)
 	buf := new(bytes.Buffer)
 	tagContent := TagContent{version}
 	tmplFuncMap := template.FuncMap{
@@ -49,6 +50,7 @@ func madeСaptionToTemplate(templateString, version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	log.Printf("madeСaptionToTemplate; buf: %s", buf.String())
 	return buf.String(), nil
 }
 
@@ -115,7 +117,18 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		var err error
 		var reqError *RequestError
 		fetcher := autoFetchers[fetchType]
-		oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, settings.Path)
+		if fetcher == nil { //not default file
+			if settings.RegexStr == "" {
+				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf(".atc.yaml don't have regexstr for not default pakage manager file %s.", fetchType))
+				return
+			}
+			fetcher = &userConfigFetcher{}
+		} else {
+			if settings.RegexStr != "" {
+				commitComment += fmt.Sprintf("Used default regexStr in file %s. ", fetchType)
+			}
+		}
+		oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, *settings)
 		if err != nil && err != errHttpStatusCode { //ignore http api error
 			log.Printf("get prev version error for %q: %v", fullname, err)
 			if err == errNoVers {
@@ -125,7 +138,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 			}
 			return
 		}
-		newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, settings.Path)
+		newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, *settings)
 		if err != nil {
 			if err == errHttpStatusCode {
 				log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
@@ -150,7 +163,6 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 			}
 
 			newVersion, err = fetcher.GetVersionDefaultPath(ghNewContentProviderPtr)
-
 			if err == nil {
 				fetched = true
 				commitComment += "Used default settings. "

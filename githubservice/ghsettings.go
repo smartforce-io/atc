@@ -3,7 +3,6 @@ package githubservice
 import (
 	"errors"
 	"log"
-	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -14,10 +13,11 @@ var unmarshal = func(content []byte, atcSettingsPtr *AtcSettings) error {
 }
 
 type AtcSettings struct {
-	Path     string `json:"path"`
-	Behavior string `json:"behavior"`
-	Template string `json:"template"`
-	Branch   string `json:"branch"`
+	Path     string `yaml:"path"`
+	Behavior string `yaml:"behavior"`
+	Template string `yaml:"template"`
+	Branch   string `yaml:"branch"`
+	RegexStr string `yaml:"regexstr"`
 }
 
 func checkSettingsForErrors(settings *AtcSettings) error {
@@ -39,7 +39,6 @@ func checkSettingsForErrors(settings *AtcSettings) error {
 	}
 	//check Path:
 	pathPrefix := "/"
-	pathSuffix := [4]string{"pom.xml", "build.gradle", "package.json", "pubspec.yaml"}
 
 	if settings.Path == "" {
 		return nil
@@ -49,15 +48,6 @@ func checkSettingsForErrors(settings *AtcSettings) error {
 	}
 	if strings.Contains(settings.Path, "//") {
 		return errors.New(`error config file .atc.yaml; path has "//"`)
-	}
-	sufOk := false
-	for _, suf := range pathSuffix {
-		if filepath.Base(settings.Path) == suf {
-			sufOk = true
-		}
-	}
-	if !sufOk {
-		return errors.New(`error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`)
 	}
 	return nil
 }

@@ -21,7 +21,7 @@ func TestPomXmlFetcherBasic(t *testing.T) {
 
 	cp := mockContentProvider{basicPomXml, nil}
 
-	vers, err := fetcher.GetVersion(&cp, "pom.xml")
+	vers, err := fetcher.GetVersion(&cp, AtcSettings{Path: "pom.xml"})
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -80,7 +80,7 @@ func TestPomXmlFetcherGeneralError(t *testing.T) {
 
 	cp := mockContentProvider{content: "", err: errGeneral}
 
-	_, err := fetcher.GetVersion(&cp, "pom.xml")
+	_, err := fetcher.GetVersion(&cp, AtcSettings{Path: "pom.xml"})
 
 	if err != errGeneral {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, errGeneral)
@@ -92,7 +92,7 @@ func TestErrorGetVersionPomXml(t *testing.T) {
 	cp := mockContentProvider{"", noContentErr}
 	pxf := &pomXmlFetcher{}
 	//test error get contents
-	_, err := pxf.GetVersion(&cp, "Maven")
+	_, err := pxf.GetVersion(&cp, AtcSettings{Path: "Maven"})
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
@@ -106,7 +106,7 @@ func TestErrorGetVersionPomXml(t *testing.T) {
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	</project>`
 	cp.err = nil
-	_, err = pxf.GetVersion(&cp, "Maven")
+	_, err = pxf.GetVersion(&cp, AtcSettings{Path: "Maven"})
 	if err != errNoVers {
 		t.Errorf("err:%s  !=  noVersErr:%s", err, errNoVers)
 	}
@@ -121,7 +121,7 @@ func TestPomXmlFetcherUnmarshalError(t *testing.T) {
 
 	cp := mockContentProvider{basicPomXml, nil}
 
-	_, err := fetcher.GetVersion(&cp, "pom.xml")
+	_, err := fetcher.GetVersion(&cp, AtcSettings{Path: "pom.xml"})
 
 	if err != errUnmarshal {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, errUnmarshal)
