@@ -13,7 +13,11 @@ type userConfigFetcher struct {
 }
 
 var unmarshalUserConfig = func(content []byte, regexStr string, userConfigPtr *UserConfig) error {
-	regex, _ := regexp.Compile(regexStr)
+	regex, err := regexp.Compile(regexStr)
+	if err != nil {
+		errParsRegex = err
+		return errParsRegex
+	}
 	res := regex.FindStringSubmatch(string(content))
 	if len(res) == 0 {
 		return errNoVers
