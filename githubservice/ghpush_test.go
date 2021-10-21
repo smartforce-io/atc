@@ -351,7 +351,7 @@ branch: main`, "GET_OLD_VERSION_FLUTTER", "file pubspec.yaml with old version no
 path: test.txt
 behavior: after
 template: FlutterV{{.Version}}
-branch: main`, "GET_OLD_VERSION_USERCONF", ".atc.yaml don't have regexstr for not default pakage manager file test.txt."},
+branch: main`, "GET_OLD_VERSION_USERCONF", ".atc.yaml don't have regexstr for not default package manager file test.txt."},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -468,7 +468,7 @@ branch: main`, "GET_NEW_VERSION_FLUTTER", "file pubspec.yaml with new version no
 path: test.txt
 behavior: after
 template: FlutterV{{.Version}}
-branch: main`, "GET_NEW_VERSION_USERCONF", ".atc.yaml don't have regexstr for not default pakage manager file test.txt."},
+branch: main`, "GET_NEW_VERSION_USERCONF", ".atc.yaml don't have regexstr for not default package manager file test.txt."},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -692,7 +692,7 @@ func TestConfiguredRegexStr(t *testing.T) {
 		{`path: pom.xml`, `regexstr: "vers: (.+)"`, `Used default regexStr in file pom.xml. Added a new version for "Codertocat/Hello-World": "v5"`},
 		{`path: pom.xml`, `regexstr: `, `Added a new version for "Codertocat/Hello-World": "v5"`},
 		{`path: pom.xml`, ``, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: test.txt`, ``, `.atc.yaml don't have regexstr for not default pakage manager file test.txt.`},
+		{`path: test.txt`, ``, `.atc.yaml don't have regexstr for not default package manager file test.txt.`},
 		{`path: test.txt`, `regexstr: "vers: (.+)"`, `Added a new version for "Codertocat/Hello-World": "v5"`},
 	}
 

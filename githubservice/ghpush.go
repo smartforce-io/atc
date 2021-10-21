@@ -117,7 +117,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		fetcher := autoFetchers[fetchType]
 		if fetcher == nil { //not default file
 			if settings.RegexStr == "" {
-				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf(".atc.yaml don't have regexstr for not default pakage manager file %s.", fetchType))
+				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf(".atc.yaml don't have regexstr for not default package manager file %s.", fetchType))
 				return
 			}
 			fetcher = &userConfigFetcher{}
