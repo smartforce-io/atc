@@ -15,8 +15,11 @@ type userConfigFetcher struct {
 var unmarshalUserConfig = func(content []byte, regexStr string, userConfigPtr *UserConfig) error {
 	regex, _ := regexp.Compile(regexStr)
 	res := regex.FindStringSubmatch(string(content))
-	if len(res) < 2 {
+	if len(res) == 0 {
 		return errNoVers
+	}
+	if len(res) == 1 {
+		return errNoGroupInConf
 	}
 	userConfigPtr.Version = res[1]
 	return nil

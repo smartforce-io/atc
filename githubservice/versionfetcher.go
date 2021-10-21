@@ -3,7 +3,8 @@ package githubservice
 import "errors"
 
 var (
-	errNoVers = errors.New("empty number version")
+	errNoVers        = errors.New("empty number version")
+	errNoGroupInConf = errors.New("regexStr don't have group")
 )
 
 type VersionFetcher interface {

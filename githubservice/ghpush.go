@@ -129,7 +129,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, *settings)
 		if err != nil && err != errHttpStatusCode { //ignore http api error
 			log.Printf("get prev version error for %q: %v", fullname, err)
-			if err == errNoVers {
+			if err == errNoVers || err == errNoGroupInConf {
 				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version err: %v", fetchType, err))
 			} else {
 				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version not found", fetchType))
@@ -140,7 +140,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		if err != nil {
 			if err == errHttpStatusCode {
 				log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
-			} else if err == errNoVers {
+			} else if err == errNoVers || err == errNoGroupInConf {
 				log.Printf("get version error for %q: %v", fullname, err)
 				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with new version err: %v", fetchType, err))
 			} else {
