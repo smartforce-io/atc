@@ -66,9 +66,9 @@ func TestCheckSettingsForErrors(t *testing.T) {
 		{"/contents/pom.xml", "", "", `error config file .atc.yaml; path has prefix "/"`},
 		{"contents//asd.txt", "", "", `error config file .atc.yaml; path has "//"`},
 		{"contents/asd.txt", "", "", `error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`},
-		{"contents/pom.xml/", "bef", "", `error config file .atc.yaml: behavior no contains "before" or "after"`},
-		{"package.json", "after", "{.version}", `error config file .atc.yaml: template no contains "{{.Version}}"`},
-		{"pubspec.yaml", "before", ".vers", `error config file .atc.yaml: template no contains "{{.Version}}"`},
+		{"contents/pom.xml/", "bef", "", `error config file .atc.yaml: behavior doesn't contain "before" or "after"`},
+		{"package.json", "after", "{.version}", `error config file .atc.yaml: template doesn't contain "{{.Version}}"`},
+		{"pubspec.yaml", "before", ".vers", `error config file .atc.yaml: template doesn't contain "{{.Version}}"`},
 		{"contents/pom.xml", "before", "v{{.Version}}V", fmt.Sprint(nil)},
 	}
 

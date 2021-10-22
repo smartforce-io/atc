@@ -494,7 +494,7 @@ func TestConfiguredTagTemplate(t *testing.T) {
 		{`template: v{{.Version}}-{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "v5-5"`, `v5-5`},
 		{`template: vTest{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
 		{`template: "{{.Version}}Vte"`, `Added a new version for "Codertocat/Hello-World": "5Vte"`, `5Vte`},
-		{`template: vVv{.Version}`, `error config file .atc.yaml: template no contains "{{.Version}}"`, ``},
+		{`template: vVv{.Version}`, `error config file .atc.yaml: template doesn't contain "{{.Version}}"`, ``},
 		{`template: `, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
 	}
 
@@ -566,8 +566,7 @@ func TestConfiguredTagBehavior(t *testing.T) {
 	var config string
 	var sha string
 	var message string
-	errorMessageEmtry := `error config file .atc.yaml; behavior = ""`
-	errorMessage := `error config file .atc.yaml: behavior no contains "before" or "after"`
+	errorMessage := `error config file .atc.yaml: behavior doesn't contain "before" or "after"`
 
 	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		return newTestResponse(200, mockContentResponse(config))
@@ -596,8 +595,8 @@ template: v{{.Version}}`, test.confString)
 		PushAction(&p, mockClientProviderPtr)
 
 		if sha != test.expectedSha {
-			if message != errorMessage && message != errorMessageEmtry {
-				t.Errorf("Wrong sha! confString: %s\nexpected: %s, got: %s\n", test.confString, test.expectedSha, sha)
+			if message != errorMessage {
+				t.Errorf("Wrong sha! confString: %s\nexpected sha: %s, got sha: %s\nexpected err: %s, got err: %s", test.confString, test.expectedSha, sha, errorMessage, message)
 			}
 		}
 	}
