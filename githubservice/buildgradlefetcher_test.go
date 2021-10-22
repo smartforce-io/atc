@@ -46,15 +46,48 @@ func TestUnmarshalBuildGradle(t *testing.T) {
 		{`versionCode 1
 		versionName "1.3"`, "1.3"},
 		{`versionName "1.4-release"`, "1.4-release"},
+		{`versionName "1.5"
+		test{
+			test2
+		}`, "1.5"},
+		{`test{
+			test2
+		}
+		versionName "1.6"`, "1.6"},
+		{`test{
+			test2
+		}
+		versionName "1.7"
+		test{
+			test2
+		}`, "1.7"},
+		{`//versionName "1.81"
+		versionName "1.8"`, "1.8"},
+		{`versionName "1.9"
+		//versionName "1.91"`, "1.9"},
+		{`//versionName "2.01"
+		versionName "2.0"
+		//versionName "2.02"`, "2.0"},
 	}
 	for _, test := range tests {
+		content := fmt.Sprintf(`
+android {
+    defaultConfig {
+        versionCode 1
+        %s
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        }
+    }
+}
+`, test.content)
 		gradle := &BuildGradle{}
-		err := unmarshalBuildGradle([]byte(test.content), gradle)
+		err := unmarshalBuildGradle([]byte(content), gradle)
 		if err != nil {
 			t.Errorf("Error unmarshal: %v", err)
-			if gradle.Version != test.version {
-				t.Errorf("Unmarshal error for content: %s\n expected: %s, got: %s", test.content, test.version, gradle.Version)
-			}
+		}
+		if gradle.Version != test.version {
+			t.Errorf("Unmarshal error for content: %s\n expected: %s, got: %s", test.content, test.version, gradle.Version)
 		}
 	}
 }
@@ -68,6 +101,13 @@ func TestUnmarshalErrorBuildGradle(t *testing.T) {
 		{`version "1.6"`, "empty number version"},
 		{`v1.1`, "empty number version"},
 		{``, "empty number version"},
+		{`defaultConfig {
+			versionCode 1
+			}`, "empty number version"},
+		{`defaultConfig {
+			versionCode 1
+			versionName 111
+			}`, "empty number version"},
 	}
 	for _, test := range tests {
 		gradle := &BuildGradle{}

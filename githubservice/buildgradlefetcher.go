@@ -1,6 +1,7 @@
 package githubservice
 
 import (
+	"log"
 	"regexp"
 )
 
@@ -12,12 +13,16 @@ type buildGradleFetcher struct {
 }
 
 var unmarshalBuildGradle = func(content []byte, buildGradlePtr *BuildGradle) error {
-	regex, _ := regexp.Compile(`versionName "([^\t\n\f\r]+)"`)
+	regex, err := regexp.Compile(`defaultConfig {[^{}]*([^{}]*{[^{}]*}[^{}]*)*[^{}]*\n[\t ]*versionName "(.+)"`)
+	if err != nil {
+		log.Printf("regexp compile err: %v", err)
+		return err
+	}
 	res := regex.FindStringSubmatch(string(content))
-	if len(res) == 0 {
+	if len(res) < 3 {
 		return errNoVers
 	}
-	buildGradlePtr.Version = res[1]
+	buildGradlePtr.Version = res[2]
 	return nil
 }
 

@@ -31,12 +31,22 @@ const (
 </project>
 `
 	oldGradle = `
-versionName "4"
-versionCode 1
+android {
+	defaultConfig {
+		versionCode 1
+		versionName "4"
+		}
+	}
+}
 `
 	newGradle = `
-versionName "5"
-versionCode 1
+android {
+	defaultConfig {
+		versionCode 1
+		versionName "5"
+		}
+	}
+}
 `
 	oldNpm = `
 {"version": "4",
