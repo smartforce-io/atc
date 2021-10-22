@@ -2,7 +2,6 @@ package githubservice
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"testing"
 
