@@ -87,7 +87,7 @@ func TestErrorGetVersionGradle(t *testing.T) {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error get contents when use DefaultPath
-	_, err = bgf.GetVersionDefaultPath(&cp)
+	_, err = bgf.GetVersionUsingDefaultPath(&cp)
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}

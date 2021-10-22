@@ -618,7 +618,7 @@ func TestMadeСaptionToTemplate(t *testing.T) {
 		{``, `1.0`, ``},
 	}
 	for _, test := range tests {
-		result, _ := madeСaptionToTemplate(test.template, test.version)
+		result, _ := renderTagNameTemplate(test.template, test.version)
 		if result != test.result {
 			t.Errorf("template: %q, version: %q\nwant: %q, got: %q", test.template, test.version, test.result, result)
 		}
@@ -634,7 +634,7 @@ func TestMadeСaptionToTemplateError(t *testing.T) {
 		{`v{{.Versio}}`, `1.0`, `template: template tagContent:1:3: executing "template tagContent" at <.Versio>: can't evaluate field Versio in type githubservice.TagContent`},
 	}
 	for _, test := range tests {
-		_, err := madeСaptionToTemplate(test.template, test.version)
+		_, err := renderTagNameTemplate(test.template, test.version)
 		if fmt.Sprint(err) != test.errString {
 			t.Errorf("template: %q, version: %q\nerr want: %v, err got: %v", test.template, test.version, test.errString, err)
 		}

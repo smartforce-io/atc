@@ -9,6 +9,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	behaviorBefore = "before"
+	behaviorAfter  = "after"
+	pathPrefix     = "/"
+)
+
 var unmarshal = func(content []byte, atcSettingsPtr *AtcSettings) error {
 	return yaml.Unmarshal([]byte(content), atcSettingsPtr)
 }
@@ -19,28 +25,25 @@ type AtcSettings struct {
 	Template string `json:"template"`
 }
 
-func checkSettingsForErrors(settings *AtcSettings) error {
+func validateSettings(settings *AtcSettings) error {
 	//check settins to "" and use default value:
 	log.Printf("settings befo check: %s", settings)
 	if settings.Behavior == "" {
-		settings.Behavior = "after"
+		settings.Behavior = behaviorAfter
 	}
 	if settings.Template == "" {
 		settings.Template = "v{{.Version}}"
 	}
 
 	//check Behavior:
-	if strings.ToLower(settings.Behavior) != "after" && strings.ToLower(settings.Behavior) != "before" {
-		return errors.New(`error config file .atc.yaml: behavior no contains "before" or "after"`)
+	if strings.ToLower(settings.Behavior) != behaviorAfter && strings.ToLower(settings.Behavior) != behaviorBefore {
+		return errors.New(`error config file .atc.yaml: behavior doesn't contain "before" or "after"`)
 	}
 	//check Template:
 	if !strings.Contains(settings.Template, `{{.Version}}`) {
-		return errors.New(`error config file .atc.yaml: template no contains "{{.Version}}"`)
+		return errors.New(`error config file .atc.yaml: template doesn't contain "{{.Version}}"`)
 	}
 	//check Path:
-	pathPrefix := "/"
-	pathSuffix := [4]string{"pom.xml", "build.gradle", "package.json", "pubspec.yaml"}
-
 	if settings.Path == "" {
 		return nil
 	}
@@ -51,8 +54,8 @@ func checkSettingsForErrors(settings *AtcSettings) error {
 		return errors.New(`error config file .atc.yaml; path has "//"`)
 	}
 	sufOk := false
-	for _, suf := range pathSuffix {
-		if filepath.Base(settings.Path) == suf {
+	for fether := range autoFetchers {
+		if filepath.Base(settings.Path) == fether {
 			sufOk = true
 		}
 	}
@@ -75,7 +78,7 @@ func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
 		return nil, errors.New(`error config file .atc.yaml; can't unmarshal file`)
 	}
 
-	if err := checkSettingsForErrors(settings); err != nil {
+	if err := validateSettings(settings); err != nil {
 		return nil, err
 	}
 

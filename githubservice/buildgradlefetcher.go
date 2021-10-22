@@ -33,6 +33,6 @@ func (buildGradleFetcher *buildGradleFetcher) GetVersion(ghContentProvider conte
 	return gradle.Version, nil
 }
 
-func (buildGradleFetcher *buildGradleFetcher) GetVersionDefaultPath(ghContentProvider contentProvider) (string, error) {
+func (buildGradleFetcher *buildGradleFetcher) GetVersionUsingDefaultPath(ghContentProvider contentProvider) (string, error) {
 	return buildGradleFetcher.GetVersion(ghContentProvider, "app/build.gradle")
 }

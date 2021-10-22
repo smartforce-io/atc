@@ -74,7 +74,7 @@ func TestCheckSettingsForErrors(t *testing.T) {
 
 	for _, test := range tests {
 		settings := &AtcSettings{test.path, test.behavior, test.template}
-		err := checkSettingsForErrors(settings)
+		err := validateSettings(settings)
 		if fmt.Sprint(err) != test.expectedErrorStr {
 			t.Errorf("no takes error settings:%s\nexpected: %s, got: %s", settings, test.expectedErrorStr, err)
 		}
