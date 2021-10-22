@@ -27,7 +27,6 @@ type AtcSettings struct {
 
 func validateSettings(settings *AtcSettings) error {
 	//check settins to "" and use default value:
-	log.Printf("settings befo check: %s", settings)
 	if settings.Behavior == "" {
 		settings.Behavior = behaviorAfter
 	}

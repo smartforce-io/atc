@@ -84,7 +84,6 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 	}
 
 	settings, err := getAtcSetting(ghNewContentProviderPtr)
-	log.Printf("settings: %s", settings)
 	commitComment := ""
 	if err != nil {
 		commitComment := fmt.Sprint(err)

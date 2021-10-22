@@ -58,7 +58,6 @@ name: atc}
 
 func mockContentResponse(content string) string {
 	response := fmt.Sprintf(`{"content" : "%s", "size": %d, "encoding":"base64"}`, base64.StdEncoding.EncodeToString([]byte(content)), len(content))
-	// log.Println(response)
 	return response
 }
 
