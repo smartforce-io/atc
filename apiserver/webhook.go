@@ -21,7 +21,7 @@ type Installation struct {
 	Id int64 `json:"id"`
 }
 
-func (api *ActApiServer) webhook(w http.ResponseWriter, r *http.Request) {
+func (api *AtcApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 	switch event := r.Header.Get("X-GitHub-Event"); event {
 	case "marketplace_purchase":
 		w.WriteHeader(http.StatusOK)
