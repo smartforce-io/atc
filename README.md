@@ -19,6 +19,40 @@ The backend for Automated Tag Creator
     export ATC_APP_ID=106890
     bin/atcapp
     ```
+
+## Create the GitHub App
+1. Navigate to your account settings.
+2. Go to `Developer settings` -> `GitGub Apps`
+3. Click `NewGitHub App`
+4. In `GitHub App name`, type the name of your app 
+5. In `HomepageURL`, type the full URL to your app's website
+6. Cancel select `Webhook -> Active`
+7. Click `Create GitHub App`
+
+More informations you can see in [Creating a GitHub App](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app)
+
+## Configurate and install the GitHub App
+1. Navigate to your account settings.
+2. Go to `Developer settings` -> `GitHub Apps`
+3. Click `Edit` in your App
+    - Select `Webhook -> Active`
+    - Use ngrok address with *api/webhook* for webhook url like: ```https://26680d04b127.ngrok.io/api/webhook```
+    - Click `Save changes`
+    - Click `Generate a private key` and download private key
+4. Go to `Permissions & events`
+    - Configurate `Repository permissions`:
+        * `Content`: Read & write
+        * `MetaData`: Read-only
+    - Select in `subscribe to events`:
+        * `Create`
+        * `Push`
+        * `Delete`
+    - Click `Save changes`
+5. Go to `Install App`
+    - Choose an account to install and click `Install`
+    - Choose `All repositories` or  `Only select repositories` and select repositories
+    - Click `Install`
+
 ## Setup the Github App
 1. Add `Webhook URL` [https://github.com/settings/apps/automated-tag-creator](https://github.com/settings/apps/automated-tag-creator)
 2. Generate a private key

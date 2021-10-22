@@ -2,8 +2,8 @@ FROM golang:alpine as gobuilder
 RUN apk add --update make git
 ADD . /atc/
 WORKDIR /atc/
-ENV GOPATH=$GOPATH:/atc
-RUN make all
+RUN go mod download
+RUN go build -o ../atc/bin/atcapp
 
 FROM alpine
 

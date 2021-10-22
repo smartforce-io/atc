@@ -1,20 +1,31 @@
 package githubservice
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
 	"path/filepath"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/google/go-github/v39/github"
 )
 
+type TagContent struct {
+	Version string
+}
+
+const (
+	behaviorBefore = "before"
+)
+
 var autoFetchers = map[string]VersionFetcher{
-	"pom.xml":           &pomXmlFetcher{},
-	"gradle.properties": &gradlePropertiesFetcher{},
-	".npmrc":            &npmrcFetcher{},
+	"pom.xml":      &pomXmlFetcher{},
+	"build.gradle": &buildGradleFetcher{},
+	"package.json": &packagejsonFetcher{},
+	"pubspec.yaml": &pubspecyamlFetcher{},
 }
 
 func detectFetchType(path string) string {
@@ -24,19 +35,28 @@ func detectFetchType(path string) string {
 	return filepath.Base(path)
 }
 
-func madeСaptionToTemplate(template, version string) string {
-	if !strings.Contains(template, "{{.version}}") {
-		return "v" + version
+func madeСaptionToTemplate(templateString, version string) (string, error) {
+	buf := new(bytes.Buffer)
+	tagContent := TagContent{version}
+	tmplFuncMap := template.FuncMap{
+		"Time": func() time.Time { return time.Now() },
 	}
-	return strings.Replace(template, "{{.version}}", version, -1)
+	tmpl, err := template.New("template tagContent").Funcs(tmplFuncMap).Parse(templateString)
+	if err != nil {
+		return "", err
+	}
+	err = tmpl.Execute(buf, tagContent)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
-func madeShaToBehavior(push *github.WebHookPayload, behavior string) string {
-	if strings.ToLower(behavior) == "before" {
-		return *push.Before
+func madeShaToBehavior(push *github.WebHookPayload, behavior string) *string {
+	if strings.ToLower(behavior) == behaviorBefore {
+		return push.Before
 	}
-	return *push.After
-
+	return push.After
 }
 
 func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
@@ -68,6 +88,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 	}
 
 	settings, err := getAtcSetting(ghNewContentProviderPtr)
+	log.Printf("settings: %s", settings)
 	commitComment := ""
 	if err != nil {
 		commitComment := fmt.Sprint(err)
@@ -84,13 +105,20 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 			oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, settings.Path)
 			if err != nil && err != errHttpStatusCode { //ignore http api error
 				log.Printf("get prev version error for %q: %v", fullname, err)
-				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version not found", fetchType))
+				if err == errNoVers {
+					addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version err: %v", fetchType, err))
+				} else {
+					addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version not found", fetchType))
+				}
 				return
 			}
 			newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, settings.Path)
 			if err != nil {
 				if err == errHttpStatusCode {
 					log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
+				} else if err == errNoVers {
+					log.Printf("get version error for %q: %v", fullname, err)
+					addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with new version err: %v", fetchType, err))
 				} else {
 					log.Printf("get version error for %q: %v", fullname, err)
 					addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with new version not found", fetchType))
@@ -98,7 +126,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 				return
 			}
 		} else {
-			commitComment = "File .atc.yaml not found. "
+			commitComment = `File .atc.yaml not found or path = "". `
 			fetched := false
 			for defaultPath, fetcher := range autoFetchers {
 				var err error
@@ -128,9 +156,12 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 
 		if newVersion != oldVersion {
 			log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
-
-			caption := madeСaptionToTemplate(settings.Template, newVersion)
-			sha := madeShaToBehavior(push, settings.Behavior)
+			caption, err := madeСaptionToTemplate(settings.Template, newVersion)
+			if err != nil {
+				log.Printf("error in go templates: %v", err)
+				return
+			}
+			sha := *madeShaToBehavior(push, settings.Behavior)
 			objType := "commit"
 			timestamp := time.Now()
 

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/smartforce-io/atc/githubservice"
@@ -38,6 +39,7 @@ func (api *ActApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 
 	case "push":
 		body, _ := ioutil.ReadAll(r.Body)
+		body = removeOrgFromWebhookRequest(body)
 
 		push := &github.WebHookPayload{}
 		if err := json.Unmarshal(body, push); err != nil {
@@ -58,4 +60,12 @@ func (api *ActApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("This webhook is undefined yet."))
 	}
+}
+
+func removeOrgFromWebhookRequest(body []byte) []byte {
+	reg, err := regexp.Compile(`,"organization":"[^\t\n\f\r\"]+"`)
+	if err != nil {
+		log.Printf("err compile regexp: %v", err)
+	}
+	return []byte(reg.ReplaceAllString(string(body), ""))
 }

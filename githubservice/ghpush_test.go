@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/smartforce-io/atc/envvars"
 
@@ -163,7 +165,7 @@ func TestPushActionBasic(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
-	expectedMessage := "File .atc.yaml not found. Used default settings. Added a new version for \"Codertocat/Hello-World\": \"v5\""
+	expectedMessage := `File .atc.yaml not found or path = "". Used default settings. Added a new version for "Codertocat/Hello-World": "v5"`
 	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
@@ -181,7 +183,6 @@ func TestPushActionBasic(t *testing.T) {
 	if message != expectedMessage {
 		t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
 	}
-
 }
 func TestConfiguredPushAction(t *testing.T) {
 	var testsConfigPath = []struct {
@@ -191,14 +192,16 @@ func TestConfiguredPushAction(t *testing.T) {
 	}{
 		{`path: projectA/pom.xml`, `projectA/pom.xml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
 		{`path: projectA/contents/pom.xml`, `projectA/contents/pom.xml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: gradle.properties`, `gradle.properties`, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: contents/gradle.properties`, `contents/gradle.properties`, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: .npmrc`, `.npmrc`, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: contents/.npmrc`, `contents/.npmrc`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: build.gradle`, `build.gradle`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: contents/build.gradle`, `contents/build.gradle`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: package.json`, `package.json`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: contents/package.json`, `contents/package.json`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: pubspec.yaml`, `pubspec.yaml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: contents/pubspec.yaml`, `contents/pubspec.yaml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
 		{`path: /projectA/pom.xml`, ``, `error config file .atc.yaml; path has prefix "/"`},
-		{`path: contents//gradle.properties`, ``, `error config file .atc.yaml; path has "//"`},
-		{`path: asd.txt`, ``, `error config file .atc.yaml: path no has suffix "pom.xml" or "gradle.properties" or ".npmrc"`},
-		{`path: `, ``, `error config file .atc.yaml; path = ""`},
+		{`path: contents//build.gradle`, ``, `error config file .atc.yaml; path has "//"`},
+		{`path: asd.txt`, ``, `error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`},
+		{`path: `, ``, `File .atc.yaml not found or path = "". Used default settings. Added a new version for "Codertocat/Hello-World": "v5"`},
 	}
 
 	p := github.WebHookPayload{}
@@ -237,11 +240,16 @@ func TestConfiguredPushAction(t *testing.T) {
 		return defaultFn(req)
 	})
 
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_FLUTTER", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		receivedUrl = req.URL.String()
+		return defaultFn(req)
+	})
+
 	for _, test := range testsConfigPath {
 		config = fmt.Sprintf(`
 %s
 behavior: before
-template: v{{.version}}`, test.confString)
+template: v{{.Version}}`, test.confString)
 		receivedUrl = ""
 		message = ""
 
@@ -258,8 +266,8 @@ template: v{{.version}}`, test.confString)
 			t.Errorf("Error config: %s\nexpectedErrorMessage: %s, got: %s", test.confString, test.messageError, message)
 		}
 	}
-
 }
+
 func TestMissedOldNewVersionNoConfig(t *testing.T) {
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -269,7 +277,7 @@ func TestMissedOldNewVersionNoConfig(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
-	expectedMessage := "File .atc.yaml not found. Not found supported package manager."
+	expectedMessage := `File .atc.yaml not found or path = "". Not found supported package manager.`
 	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
@@ -291,6 +299,10 @@ func TestMissedOldNewVersionNoConfig(t *testing.T) {
 		return newTestResponse(404, "not found")
 	})
 
+	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_FLUTTER", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
 	PushAction(&p, mockClientProviderPtr)
 
 	if !commentCreated {
@@ -301,6 +313,7 @@ func TestMissedOldNewVersionNoConfig(t *testing.T) {
 		t.Errorf("Wrong commit comment! expected: %s, got: %s\n", expectedMessage, message)
 	}
 }
+
 func TestMissedOldVersionWithConfig(t *testing.T) {
 	var testsMissVersion = []struct {
 		confString                string
@@ -310,15 +323,19 @@ func TestMissedOldVersionWithConfig(t *testing.T) {
 		{`
 path: projectA/pom.xml
 behavior: before
-template: v{{.version}}`, "GET_OLD_VERSION_MAVEN", "file pom.xml with old version not found"},
+template: MavenV{{.Version}}`, "GET_OLD_VERSION_MAVEN", "file pom.xml with old version not found"},
 		{`
-path: gradle.properties
+path: build.gradle
 behavior: after
-template: v{{.version}}v`, "GET_OLD_VERSION_GRADLE", "file gradle.properties with old version not found"},
+template: GradleV{{.Version}}`, "GET_OLD_VERSION_GRADLE", "file build.gradle with old version not found"},
 		{`
-path: .npmrc
+path: package.json
 behavior: before
-template: v{{.version}}VVtest`, "GET_OLD_VERSION_NPM", "file .npmrc with old version not found"},
+template: NPMv{{.Version}}`, "GET_OLD_VERSION_NPM", "file package.json with old version not found"},
+		{`
+path: pubspec.yaml
+behavior: after
+template: FlutterV{{.Version}}`, "GET_OLD_VERSION_FLUTTER", "file pubspec.yaml with old version not found"},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -368,7 +385,7 @@ func TestMissedNewVersionNoConfig(t *testing.T) {
 	mockClientProviderPtr := DefaultMockClientProvider()
 
 	commentCreated := false
-	expectedMessage := "File .atc.yaml not found. Not found supported package manager."
+	expectedMessage := `File .atc.yaml not found or path = "". Not found supported package manager.`
 	var message string
 
 	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
@@ -387,6 +404,10 @@ func TestMissedNewVersionNoConfig(t *testing.T) {
 	})
 
 	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_NPM", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(404, "not found")
+	})
+
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_FLUTTER", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		return newTestResponse(404, "not found")
 	})
 
@@ -410,15 +431,19 @@ func TestMissedNewVersionWithConfig(t *testing.T) {
 		{`
 path: projectA/pom.xml
 behavior: before
-template: v{{.version}}`, "GET_NEW_VERSION_MAVEN", "file pom.xml with new version not found"},
+template: MavenV{{.Version}}`, "GET_NEW_VERSION_MAVEN", "file pom.xml with new version not found"},
 		{`
-path: gradle.properties
+path: build.gradle
 behavior: after
-template: v{{.version}}v`, "GET_NEW_VERSION_GRADLE", "file gradle.properties with new version not found"},
+template: GradleV{{.Version}}`, "GET_NEW_VERSION_GRADLE", "file build.gradle with new version not found"},
 		{`
-path: .npmrc
+path: package.json
 behavior: before
-template: v{{.version}}VVtest`, "GET_NEW_VERSION_NPM", "file .npmrc with new version not found"},
+template: NPMv{{.Version}}`, "GET_NEW_VERSION_NPM", "file package.json with new version not found"},
+		{`
+path: pubspec.yaml
+behavior: after
+template: FlutterV{{.Version}}`, "GET_NEW_VERSION_FLUTTER", "file pubspec.yaml with new version not found"},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -458,17 +483,19 @@ template: v{{.version}}VVtest`, "GET_NEW_VERSION_NPM", "file .npmrc with new ver
 		}
 	}
 }
+
 func TestConfiguredTagTemplate(t *testing.T) {
 	var testsConfigTemplate = []struct {
 		confString      string
 		expectedMessage string
 		expectedTag     string
 	}{
-		{`template: v{{.version}}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
-		{`template: vTest{{.version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
-		{`template: {{ .version}}Vte`, `error config file .atc.yaml; can't unmarshal file`, ``}, // new unmarshal???
-		{`template: vVv{.version}`, `error config file .atc.yaml: template no contains "{{.version}}"`, ``},
-		{`template: `, `error config file .atc.yaml; template = ""`, ``},
+		{`template: v{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
+		{`template: v{{.Version}}-{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "v5-5"`, `v5-5`},
+		{`template: vTest{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
+		{`template: "{{.Version}}Vte"`, `Added a new version for "Codertocat/Hello-World": "5Vte"`, `5Vte`},
+		{`template: vVv{.Version}`, `error config file .atc.yaml: template no contains "{{.Version}}"`, ``},
+		{`template: `, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
 	}
 
 	p := github.WebHookPayload{}
@@ -516,7 +543,6 @@ behavior: before
 			t.Errorf("Wrong commit comment! confString: %s\nexpected: %s, got: %s\n", test.confString, test.expectedMessage, message)
 		}
 	}
-
 }
 
 func TestConfiguredTagBehavior(t *testing.T) {
@@ -526,8 +552,8 @@ func TestConfiguredTagBehavior(t *testing.T) {
 	}{
 		{`behavior: after`, `0000000000000000000000000000000000000000`},
 		{`behavior: before`, `6113728f27ae82c7b1a177c8d03f9e96e0adf246`},
-		{`behavior: bef`, `no_sha`},
-		{`behavior: `, `no_sha`},
+		{`behavior: bef`, `0000000000000000000000000000000000000000`},
+		{`behavior: `, `0000000000000000000000000000000000000000`},
 	}
 
 	p := github.WebHookPayload{}
@@ -563,7 +589,7 @@ func TestConfiguredTagBehavior(t *testing.T) {
 		config = fmt.Sprintf(`
 path: contents/pom.xml
 %s
-template: v{{.version}}`, test.confString)
+template: v{{.Version}}`, test.confString)
 
 		sha = ""
 
@@ -583,18 +609,34 @@ func TestMadeСaptionToTemplate(t *testing.T) {
 		version  string
 		result   string
 	}{
-		{`v{{.version}}`, `1.0`, `v1.0`},
-		{`vNN{{.version}}`, `1.0`, `vNN1.0`},
-		{`v_{{.version}}`, `1.0`, `v_1.0`},
-		{`v{{.version}}`, `1.0-relise`, `v1.0-relise`},
-		{`v{{.versio}}`, `1.0`, `v1.0`},
-		{`{{.version}}`, `1.0`, `1.0`},
-		{``, `1.0`, `v1.0`},
+		{`v{{.Version}}`, `1.0`, `v1.0`},
+		{`vNN{{.Version}}`, `1.0`, `vNN1.0`},
+		{`v_{{.Version}}`, `1.0`, `v_1.0`},
+		{`v{{.Version}}`, `1.0-relise`, `v1.0-relise`},
+		{`{{.Version}}`, `1.0`, `1.0`},
+		{`Time hour now: {{Time.Hour}}, {{.Version}}`, `1.0`, "Time hour now: " + strconv.Itoa(time.Now().Hour()) + ", 1.0"},
+		{``, `1.0`, ``},
 	}
 	for _, test := range tests {
-		result := madeСaptionToTemplate(test.template, test.version)
+		result, _ := madeСaptionToTemplate(test.template, test.version)
 		if result != test.result {
-			t.Errorf("template: %q, version: %q\nwant: %q, got: %q", test.template, test.version, result, test.result)
+			t.Errorf("template: %q, version: %q\nwant: %q, got: %q", test.template, test.version, test.result, result)
+		}
+	}
+}
+
+func TestMadeСaptionToTemplateError(t *testing.T) {
+	var tests = []struct {
+		template  string
+		version   string
+		errString string
+	}{
+		{`v{{.Versio}}`, `1.0`, `template: template tagContent:1:3: executing "template tagContent" at <.Versio>: can't evaluate field Versio in type githubservice.TagContent`},
+	}
+	for _, test := range tests {
+		_, err := madeСaptionToTemplate(test.template, test.version)
+		if fmt.Sprint(err) != test.errString {
+			t.Errorf("template: %q, version: %q\nerr want: %v, err got: %v", test.template, test.version, test.errString, err)
 		}
 	}
 }
