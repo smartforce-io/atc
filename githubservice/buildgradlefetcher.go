@@ -13,7 +13,7 @@ type buildGradleFetcher struct {
 }
 
 var unmarshalBuildGradle = func(content []byte, buildGradlePtr *BuildGradle) error {
-	regex, err := regexp.Compile(`defaultConfig {[^{}]*([^{}]*{[^{}]*}[^{}]*)*[^{}]*\n[\t ]*versionName "(.+)"`)
+	regex, err := regexp.Compile(`defaultConfig {[^{}]*([^{}]*{[\s\S]*}[^{}]*)*[^{}]*\n[\t ]*versionName "(.+)"`)
 	if err != nil {
 		log.Printf("regexp compile err: %v", err)
 		return err
