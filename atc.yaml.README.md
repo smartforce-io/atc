@@ -1,7 +1,7 @@
 # Config file ATC .atc.yaml
 
 Config file uses syntax Yaml.\
-.Atc.yaml settings are always taken from ** default ** branch! 
+.Atc.yaml settings are always taken from **default** branch! 
 
 ## Action Inputs
 - [**Path**](#path): Path to package manager configuration file.
