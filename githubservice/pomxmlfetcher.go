@@ -31,5 +31,5 @@ func (pomXmlFetcher *pomXmlFetcher) GetVersion(ghContentProvider contentProvider
 }
 
 func (pomXmlFetcher *pomXmlFetcher) GetVersionUsingDefaultPath(ghContentProvider contentProvider) (string, error) {
-	return pomXmlFetcher.GetVersion(ghContentProvider, AtcSettings{Path: "contents/pom.xml"})
+	return pomXmlFetcher.GetVersion(ghContentProvider, AtcSettings{Path: "pom.xml"})
 }
