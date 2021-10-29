@@ -23,6 +23,7 @@ type AtcSettings struct {
 	Path     string `json:"path"`
 	Behavior string `json:"behavior"`
 	Template string `json:"template"`
+	Branch   string `json:"branch"`
 }
 
 func validateSettings(settings *AtcSettings) error {
@@ -80,6 +81,5 @@ func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
 	if err := validateSettings(settings); err != nil {
 		return nil, err
 	}
-
 	return settings, nil
 }

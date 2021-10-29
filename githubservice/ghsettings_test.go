@@ -13,7 +13,8 @@ func failingAtcSettingsUnmarshal(content []byte, atcSettingsPtr *AtcSettings) er
 var basicConfig = `
 path: contests/pom.xml
 behavior: before
-template: v{{.Version}}`
+template: v{{.Version}}
+branch: main`
 
 func TestBasicAtcSetting(t *testing.T) {
 
@@ -22,15 +23,18 @@ func TestBasicAtcSetting(t *testing.T) {
 		path     string
 		behavior string
 		template string
+		branch   string
 	}{
 		{`
 path: contents/pom.xml
 behavior: before
-template: v{{.Version}}`, `contents/pom.xml`, `before`, `v{{.Version}}`},
+template: v{{.Version}}
+branch: main`, `contents/pom.xml`, `before`, `v{{.Version}}`, `main`},
 		{`
 path: build.gradle
 behavior: after
-template: vGR{{.Version}}`, `build.gradle`, `after`, `vGR{{.Version}}`},
+template: vGR{{.Version}}
+branch: test`, `build.gradle`, `after`, `vGR{{.Version}}`, `test`},
 	}
 
 	cp := mockContentProvider{basicConfig, nil}
@@ -53,6 +57,9 @@ template: vGR{{.Version}}`, `build.gradle`, `after`, `vGR{{.Version}}`},
 		if settings.Template != test.template {
 			t.Errorf("wrong settings Template! Got %q, wanted %q", settings.Template, test.template)
 		}
+		if settings.Branch != test.branch {
+			t.Errorf("wrong settings Branch! Got %q, wanted %q", settings.Branch, test.branch)
+		}
 	}
 }
 
@@ -61,19 +68,20 @@ func TestCheckSettingsForErrors(t *testing.T) {
 		path             string
 		behavior         string
 		template         string
+		branch           string
 		expectedErrorStr string
 	}{
-		{"/contents/pom.xml", "", "", `error config file .atc.yaml; path has prefix "/"`},
-		{"contents//asd.txt", "", "", `error config file .atc.yaml; path has "//"`},
-		{"contents/asd.txt", "", "", `error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`},
-		{"contents/pom.xml/", "bef", "", `error config file .atc.yaml: behavior doesn't contain "before" or "after"`},
-		{"package.json", "after", "{.version}", `error config file .atc.yaml: template doesn't contain "{{.Version}}"`},
-		{"pubspec.yaml", "before", ".vers", `error config file .atc.yaml: template doesn't contain "{{.Version}}"`},
-		{"contents/pom.xml", "before", "v{{.Version}}V", fmt.Sprint(nil)},
+		{"/contents/pom.xml", "", "", "", `error config file .atc.yaml; path has prefix "/"`},
+		{"contents//asd.txt", "", "", "", `error config file .atc.yaml; path has "//"`},
+		{"contents/asd.txt", "", "", "", `error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`},
+		{"contents/pom.xml/", "bef", "", "", `error config file .atc.yaml: behavior doesn't contain "before" or "after"`},
+		{"package.json", "after", "{.version}", "", `error config file .atc.yaml: template doesn't contain "{{.Version}}"`},
+		{"pubspec.yaml", "before", ".vers", "", `error config file .atc.yaml: template doesn't contain "{{.Version}}"`},
+		{"contents/pom.xml", "before", "v{{.Version}}V", "testbranch", fmt.Sprint(nil)},
 	}
 
 	for _, test := range tests {
-		settings := &AtcSettings{test.path, test.behavior, test.template}
+		settings := &AtcSettings{test.path, test.behavior, test.template, test.branch}
 		err := validateSettings(settings)
 		if fmt.Sprint(err) != test.expectedErrorStr {
 			t.Errorf("no takes error settings:%s\nexpected: %s, got: %s", settings, test.expectedErrorStr, err)
@@ -89,15 +97,18 @@ func TestUnmarshalDefault(t *testing.T) {
 		{`
 path: build.gradle
 behavior: before
-template: "v{{.version}}"`, errors.New(``)},
+template: "v{{.version}}"
+branch: main`, errors.New(``)},
 		{`
 		path: build.gradle
 		behavior: before
-		template: v{{.version}}`, nil},
+		template: v{{.version}}
+		branch: main`, nil},
 		{`
 path: build.gradle
 behavior: before
-template: {{.version}}`, nil},
+template: {{.version}}
+branch: main`, nil},
 		{``, errors.New(``)},
 	}
 
@@ -113,7 +124,8 @@ func TestAtcSettingGetContentsError(t *testing.T) {
 	confFilStr := `
 path: contents/pom.xml
 behavior: before
-template: v{{.version}}`
+template: v{{.version}}
+branch: main`
 	emptySettings := &AtcSettings{}
 
 	cp := mockContentProvider{content: confFilStr, err: errGeneral}

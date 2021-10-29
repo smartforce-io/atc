@@ -21,7 +21,7 @@ var errHttpStatusCode = errors.New("http status code error")
 type ghContentProvider struct {
 	owner    string
 	repo     string
-	sha1     string
+	ref      string
 	ctx      context.Context
 	ghClient *github.Client
 }
@@ -30,7 +30,7 @@ func (ghcp *ghContentProvider) getContents(path string) (string, error) {
 
 	fileContent, _, response, err := ghcp.ghClient.Repositories.GetContents(ghcp.ctx,
 		ghcp.owner, ghcp.repo, path,
-		&github.RepositoryContentGetOptions{Ref: ghcp.sha1})
+		&github.RepositoryContentGetOptions{Ref: ghcp.ref})
 
 	if err != nil {
 		return "", err
