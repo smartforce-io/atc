@@ -85,7 +85,7 @@ func TestErrorGetVersionPubspecYaml(t *testing.T) {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error get contents when use DefaultPath
-	_, err = psf.GetVersionDefaultPath(&cp)
+	_, err = psf.GetVersionUsingDefaultPath(&cp)
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}

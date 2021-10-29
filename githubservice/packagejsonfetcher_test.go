@@ -85,7 +85,7 @@ func TestErrorGetVersionPackageJson(t *testing.T) {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error get contents when use DefaultPath
-	_, err = pjf.GetVersionDefaultPath(&cp)
+	_, err = pjf.GetVersionUsingDefaultPath(&cp)
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
