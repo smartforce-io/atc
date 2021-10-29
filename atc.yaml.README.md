@@ -1,6 +1,6 @@
 # Config file ATC .atc.yaml
 
-Config file uses syntax Yaml.\
+Config file has Yaml format.\
 .Atc.yaml settings are always taken from **default** branch! 
 
 ## Action Inputs
@@ -11,40 +11,40 @@ Config file uses syntax Yaml.\
 - [**RegexStr**](#regexstr): Regex String to get version from custom configuration file.
 
 ## Examples:
-* **Only path configuration.** When the configuration file *contents/pom.xml* changes the version project in *default* branch from 1.0.0 to 1.0.1, this example will create the tag "v1.0.1" in current commit.
+* **Minimal configuration.** When the configuration file *pom.xml* changes the version project in *default* branch from 1.0.0 to 1.0.1, this example will create the tag "v1.0.1" in current commit.
 ```yaml
-path: "contents/pom.xml"
+path: "pom.xml"
 ```
-* **Full configuration with default package manager.** When the configurate file *package.json* changes the version project in *release* branch from 1.1.0 to 1.1.1, this example will create a tag "v1.1.1-alfaNPM" in previous commit.
+* **Full configuration with Node Package Manager.** When the configurate file *package.json* changes the version project in *release* branch from 1.1.0 to 1.1.1, this example will create a tag "v1.1.1-alfaNPM" in previous commit.
 ```yaml
 path: "package.json"
 behavior: "before"
 template: "{{.Version}}-alfaNPM"
 branch: "release"
 ```
-* **Full configuration with custom package manager.** When the configurate file *test.txt* changes the version project in *release* branch from 1.2.0 to 1.2.1, this example will create a tag "v1.2.1-custom" in previous commit.
+* **Full configuration with custom package manager.** When the configurate file *custom_package_manager.txt* changes the version project in *release* branch from 1.2.0 to 1.2.1, this example will create a tag "v1.2.1-custom" in previous commit.
 ```yaml
-path: "package.json"
+path: "custom_package_manager.txt"
 behavior: "before"
 template: "{{.Version}}-custom"
 branch: "release"
 regexStr: "vers: (.+)"
 ```
-###### File test.txt:
+###### File custom_package_manager.txt:
 ```
-name: test
+name: custom name
 vers: 1.2.1
-project: test
+project: custom project
 ```
 
 ## Сustomization ATC config file(.atc.yaml):
 ### Path
-ATC supports: Gradle(build.gradle), NPM(package.json), Maven(pom.xml), Flutter(pubspec.yaml) or other config file if [RegexStr](#regexstr) is used. 
+ATC supports: Gradle(build.gradle), NPM(package.json), Maven(pom.xml), Flutter(pubspec.yaml) or generic config file if [RegexStr](#regexstr) is used. 
 Path uses relative link to the package manager configuration file. Don't use "/" preffix.
 ```yaml
-path: "contents/pom.xml"
-path: "package.json"
-path: "test.txt"
+path: "pom.xml"
+path: "app/build.gradle"
+path: "custom_package_manager.txt"
 ```
 ### Behavior
 ATC can create tag for current commit, use **after** for this, or previous commit, use **before** for this. The default behavior is **after**.
@@ -68,7 +68,7 @@ ATC can track non-default branch.
 ```yaml
 branch: "main"
 branch: "issue-404"
-branch: "testbranch"
+branch: "customBranch"
 ```
 ### RegexStr
 Write [Path](#path) to configuration file and create regex string if you are not using the default ATC package manager. 
