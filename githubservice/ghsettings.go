@@ -8,6 +8,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	behaviorBefore = "before"
+	behaviorAfter  = "after"
+	pathPrefix     = "/"
+)
+
 var unmarshal = func(content []byte, atcSettingsPtr *AtcSettings) error {
 	return yaml.Unmarshal([]byte(content), atcSettingsPtr)
 }
@@ -20,22 +26,22 @@ type AtcSettings struct {
 	RegexStr string `yaml:"regexstr"`
 }
 
-func checkSettingsForErrors(settings *AtcSettings) error {
+func validateSettings(settings *AtcSettings) error {
 	//check settins to "" and use default value:
 	if settings.Behavior == "" {
-		settings.Behavior = "after"
+		settings.Behavior = behaviorAfter
 	}
 	if settings.Template == "" {
 		settings.Template = "v{{.Version}}"
 	}
 
 	//check Behavior:
-	if strings.ToLower(settings.Behavior) != "after" && strings.ToLower(settings.Behavior) != "before" {
-		return errors.New(`error config file .atc.yaml: behavior no contains "before" or "after"`)
+	if strings.ToLower(settings.Behavior) != behaviorAfter && strings.ToLower(settings.Behavior) != behaviorBefore {
+		return errors.New(`error config file .atc.yaml: behavior doesn't contain "before" or "after"`)
 	}
 	//check Template:
 	if !strings.Contains(settings.Template, `{{.Version}}`) {
-		return errors.New(`error config file .atc.yaml: template no contains "{{.Version}}"`)
+		return errors.New(`error config file .atc.yaml: template doesn't contain "{{.Version}}"`)
 	}
 	//check Path:
 	pathPrefix := "/"
@@ -65,7 +71,7 @@ func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
 		return nil, errors.New(`error config file .atc.yaml; can't unmarshal file`)
 	}
 
-	if err := checkSettingsForErrors(settings); err != nil {
+	if err := validateSettings(settings); err != nil {
 		return nil, err
 	}
 	return settings, nil

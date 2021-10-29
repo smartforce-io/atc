@@ -28,6 +28,6 @@ func (pubspecyamlFetcher *pubspecyamlFetcher) GetVersion(ghContentProvider conte
 	return pubspecyaml.Version, nil
 }
 
-func (pubspecyamlFetcher *pubspecyamlFetcher) GetVersionDefaultPath(ghContentProvider contentProvider) (string, error) {
+func (pubspecyamlFetcher *pubspecyamlFetcher) GetVersionUsingDefaultPath(ghContentProvider contentProvider) (string, error) {
 	return pubspecyamlFetcher.GetVersion(ghContentProvider, AtcSettings{Path: "pubspec.yaml"})
 }

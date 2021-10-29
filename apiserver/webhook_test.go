@@ -27,7 +27,7 @@ func (maskResponseWriter *maskResponseWriter) WriteHeader(statusCode int) {
 }
 
 func TestWebhook(t *testing.T) {
-	act := &ActApiServer{}
+	act := &AtcApiServer{}
 
 	var tests = []struct {
 		event              string

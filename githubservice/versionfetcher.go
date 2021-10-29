@@ -10,5 +10,5 @@ var (
 
 type VersionFetcher interface {
 	GetVersion(ghContentProvider contentProvider, settings AtcSettings) (string, error)
-	GetVersionDefaultPath(ghContentProvider contentProvider) (string, error)
+	GetVersionUsingDefaultPath(ghContentProvider contentProvider) (string, error)
 }

@@ -30,6 +30,6 @@ func (packagejsonFetcher *packagejsonFetcher) GetVersion(ghContentProvider conte
 	return packagejson.Version, nil
 }
 
-func (packagejsonFetcher *packagejsonFetcher) GetVersionDefaultPath(ghContentProvider contentProvider) (string, error) {
+func (packagejsonFetcher *packagejsonFetcher) GetVersionUsingDefaultPath(ghContentProvider contentProvider) (string, error) {
 	return packagejsonFetcher.GetVersion(ghContentProvider, AtcSettings{Path: "package.json"})
 }

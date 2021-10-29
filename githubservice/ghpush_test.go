@@ -519,7 +519,7 @@ func TestConfiguredTagTemplate(t *testing.T) {
 		{`template: v{{.Version}}-{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "v5-5"`, `v5-5`},
 		{`template: vTest{{.Version}}`, `Added a new version for "Codertocat/Hello-World": "vTest5"`, `vTest5`},
 		{`template: "{{.Version}}Vte"`, `Added a new version for "Codertocat/Hello-World": "5Vte"`, `5Vte`},
-		{`template: vVv{.Version}`, `error config file .atc.yaml: template no contains "{{.Version}}"`, ``},
+		{`template: vVv{.Version}`, `error config file .atc.yaml: template doesn't contain "{{.Version}}"`, ``},
 		{`template: `, `Added a new version for "Codertocat/Hello-World": "v5"`, `v5`},
 	}
 
@@ -592,8 +592,7 @@ func TestConfiguredTagBehavior(t *testing.T) {
 	var config string
 	var sha string
 	var message string
-	errorMessageEmtry := `error config file .atc.yaml; behavior = ""`
-	errorMessage := `error config file .atc.yaml: behavior no contains "before" or "after"`
+	errorMessage := `error config file .atc.yaml: behavior doesn't contain "before" or "after"`
 
 	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
 		return newTestResponse(200, mockContentResponse(config))
@@ -623,8 +622,8 @@ branch: main`, test.confString)
 		PushAction(&p, mockClientProviderPtr)
 
 		if sha != test.expectedSha {
-			if message != errorMessage && message != errorMessageEmtry {
-				t.Errorf("Wrong sha! confString: %s\nexpected: %s, got: %s\n", test.confString, test.expectedSha, sha)
+			if message != errorMessage {
+				t.Errorf("Wrong sha! confString: %s\nexpected sha: %s, got sha: %s\nexpected err: %s, got err: %s", test.confString, test.expectedSha, sha, errorMessage, message)
 			}
 		}
 	}
@@ -753,7 +752,7 @@ func TestMadeСaptionToTemplate(t *testing.T) {
 		{``, `1.0`, ``},
 	}
 	for _, test := range tests {
-		result, _ := madeСaptionToTemplate(test.template, test.version)
+		result, _ := renderTagNameTemplate(test.template, test.version)
 		if result != test.result {
 			t.Errorf("template: %q, version: %q\nwant: %q, got: %q", test.template, test.version, test.result, result)
 		}
@@ -769,7 +768,7 @@ func TestMadeСaptionToTemplateError(t *testing.T) {
 		{`v{{.Versio}}`, `1.0`, `template: template tagContent:1:3: executing "template tagContent" at <.Versio>: can't evaluate field Versio in type githubservice.TagContent`},
 	}
 	for _, test := range tests {
-		_, err := madeСaptionToTemplate(test.template, test.version)
+		_, err := renderTagNameTemplate(test.template, test.version)
 		if fmt.Sprint(err) != test.errString {
 			t.Errorf("template: %q, version: %q\nerr want: %v, err got: %v", test.template, test.version, test.errString, err)
 		}

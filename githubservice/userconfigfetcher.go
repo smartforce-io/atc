@@ -41,6 +41,6 @@ func (userConfigFetcher *userConfigFetcher) GetVersion(ghContentProvider content
 	return userConfig.Version, nil
 }
 
-func (userConfigFetcher *userConfigFetcher) GetVersionDefaultPath(ghContentProvider contentProvider) (string, error) {
+func (userConfigFetcher *userConfigFetcher) GetVersionUsingDefaultPath(ghContentProvider contentProvider) (string, error) {
 	return "", errors.New("UserConfig don't have default path")
 }

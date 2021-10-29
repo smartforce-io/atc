@@ -97,7 +97,7 @@ func TestErrorGetVersionPomXml(t *testing.T) {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error get contents when use DefaultPath
-	_, err = pxf.GetVersionDefaultPath(&cp)
+	_, err = pxf.GetVersionUsingDefaultPath(&cp)
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}

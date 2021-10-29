@@ -85,7 +85,7 @@ func TestErrorGetVersionUserConfig(t *testing.T) {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error get contents when use DefaultPath
-	_, err = usf.GetVersionDefaultPath(&cp)
+	_, err = usf.GetVersionUsingDefaultPath(&cp)
 	if fmt.Sprintf("%s", err) != defaultPathErr {
 		t.Errorf("err:%s  !=  defaultPathErr:%s", err, defaultPathErr)
 	}

@@ -17,10 +17,6 @@ type TagContent struct {
 	Version string
 }
 
-const (
-	behaviorBefore = "before"
-)
-
 var autoFetchers = map[string]VersionFetcher{
 	"pom.xml":      &pomXmlFetcher{},
 	"build.gradle": &buildGradleFetcher{},
@@ -35,7 +31,7 @@ func detectFetchType(path string) string {
 	return filepath.Base(path)
 }
 
-func madeСaptionToTemplate(templateString, version string) (string, error) {
+func renderTagNameTemplate(templateString, version string) (string, error) {
 	buf := new(bytes.Buffer)
 	tagContent := TagContent{version}
 	tmplFuncMap := template.FuncMap{
@@ -52,7 +48,7 @@ func madeСaptionToTemplate(templateString, version string) (string, error) {
 	return buf.String(), nil
 }
 
-func madeShaToBehavior(push *github.WebHookPayload, behavior string) *string {
+func getShaByBehavior(push *github.WebHookPayload, behavior string) *string {
 	if strings.ToLower(behavior) == behaviorBefore {
 		return push.Before
 	}
@@ -154,13 +150,13 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		fetched := false
 		for defaultPath, fetcher := range autoFetchers {
 			var err error
-			oldVersion, err = fetcher.GetVersionDefaultPath(ghOldContentProviderPtr)
+			oldVersion, err = fetcher.GetVersionUsingDefaultPath(ghOldContentProviderPtr)
 			if err != nil && err != errHttpStatusCode { //ignore http api error
 				log.Printf("get prev version error for %q, default path: %s, err: %v", fullname, defaultPath, err)
 				continue
 			}
 
-			newVersion, err = fetcher.GetVersionDefaultPath(ghNewContentProviderPtr)
+			newVersion, err = fetcher.GetVersionUsingDefaultPath(ghNewContentProviderPtr)
 			if err == nil {
 				fetched = true
 				commitComment += "Used default settings. "
@@ -179,12 +175,12 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 
 	if newVersion != oldVersion {
 		log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
-		caption, err := madeСaptionToTemplate(settings.Template, newVersion)
+		caption, err := renderTagNameTemplate(settings.Template, newVersion)
 		if err != nil {
 			log.Printf("error in go templates: %v", err)
 			return
 		}
-		sha := *madeShaToBehavior(push, settings.Behavior)
+		sha := *getShaByBehavior(push, settings.Behavior)
 		objType := "commit"
 		timestamp := time.Now()
 
