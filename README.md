@@ -27,6 +27,7 @@ The backend for Automated Tag Creator
 4. In `GitHub App name`, type the name of your app 
 5. In `HomepageURL`, type the full URL to your app's website
 6. Cancel select `Webhook -> Active`
+7. Click `Create GitHub App`
 
 More informations you can see in [Creating a GitHub App](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app)
 
@@ -36,8 +37,8 @@ More informations you can see in [Creating a GitHub App](https://docs.github.com
 3. Click `Edit` in your App
     - Select `Webhook -> Active`
     - Use ngrok address with *api/webhook* for webhook url like: ```https://26680d04b127.ngrok.io/api/webhook```
-    - Click `Generate a private key` and download private key
     - Click `Save changes`
+    - Click `Generate a private key` and download private key
 4. Go to `Permissions & events`
     - Configurate `Repository permissions`:
         * `Content`: Read & write
@@ -55,6 +56,14 @@ More informations you can see in [Creating a GitHub App](https://docs.github.com
 ## Setup the Github App
 1. Add `Webhook URL` [https://github.com/settings/apps/automated-tag-creator](https://github.com/settings/apps/automated-tag-creator)
 2. Generate a private key
+
+## Configuration .atc.yaml
+1. Download config file `.atc.yaml` [https://github.com/smartforce-io/atc/.atc.yaml](https://github.com/smartforce-io/atc/.atc.yaml)
+2. Move `.atc.yaml` to project root
+3. Change `.atc.yaml` if You need it:
+    - Change `path` to configuration file your Build automation (`pom.xml` for Maven, `.npmrc` for NPM or `gradle.properties` for Gradle)
+    - Choose when add tags: `Before` or `After` commit(Default After)
+    - Write template for tags (You need use substring {{.version}})
 
 ## Deploy the backend
 ### Add pem data to KMS

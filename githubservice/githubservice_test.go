@@ -30,11 +30,44 @@ const (
 	<version>5</version>
 </project>
 `
+	oldGradle = `
+android {
+	defaultConfig {
+		versionCode 1
+		versionName "4"
+		}
+	}
+}
+`
+	newGradle = `
+android {
+	defaultConfig {
+		versionCode 1
+		versionName "5"
+		}
+	}
+}
+`
+	oldNpm = `
+{"version": "4",
+"name": "atc"}
+`
+	newNpm = `
+{"version": "5",
+"name": "atc"}
+`
+	oldFlutter = `
+{version: 4,
+name: atc}
+`
+	newFlutter = `
+{version: 5,
+name: atc}
+`
 )
 
 func mockContentResponse(content string) string {
 	response := fmt.Sprintf(`{"content" : "%s", "size": %d, "encoding":"base64"}`, base64.StdEncoding.EncodeToString([]byte(content)), len(content))
-	log.Println(response)
 	return response
 }
 
@@ -120,20 +153,100 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return newTestResponse(404, "not found")
 			},
 		},
-		"GET_OLD_VERSION": {
+		"GET_OLD_VERSION_MAVEN": {
 			func(req *http.Request) bool {
-				return strings.Contains(req.URL.String(), "pom.xml?ref=")
+				matched, err := regexp.MatchString("pom\\.xml\\?ref=", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
 			},
 			func(req *http.Request) *http.Response {
 				return newTestResponse(200, mockContentResponse(oldPomXml))
 			},
 		},
-		"GET_NEW_VERSION": {
+		"GET_NEW_VERSION_MAVEN": {
 			func(req *http.Request) bool {
-				return strings.Contains(req.URL.String(), "pom.xml")
+				matched, err := regexp.MatchString("pom\\.xml$", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
 			},
 			func(req *http.Request) *http.Response {
 				return newTestResponse(200, mockContentResponse(newPomXml))
+			},
+		},
+		"GET_OLD_VERSION_GRADLE": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("build\\.gradle\\?ref=", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(oldGradle))
+			},
+		},
+		"GET_NEW_VERSION_GRADLE": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("build\\.gradle$", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(newGradle))
+			},
+		},
+		"GET_OLD_VERSION_NPM": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("package\\.json\\?ref=", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(oldNpm))
+			},
+		},
+		"GET_NEW_VERSION_NPM": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("package\\.json$", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(newNpm))
+			},
+		},
+		"GET_OLD_VERSION_FLUTTER": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("pubspec\\.yaml\\?ref=", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(oldFlutter))
+			},
+		},
+		"GET_NEW_VERSION_FLUTTER": {
+			func(req *http.Request) bool {
+				matched, err := regexp.MatchString("pubspec\\.yaml$", req.URL.String())
+				if err != nil {
+					return false
+				}
+				return matched
+			},
+			func(req *http.Request) *http.Response {
+				return newTestResponse(200, mockContentResponse(newFlutter))
 			},
 		},
 		"ADD_TAG": {
@@ -141,7 +254,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return strings.Contains(req.URL.String(), "/git/tags")
 			},
 			func(req *http.Request) *http.Response {
-				log.Println(req.Body)
+				log.Println("ADD_TAG req.Body: ", req.Body)
 				jsonMap := getBodyJson(req)
 
 				return newTestResponse(201, fmt.Sprintf(`{"tag":"%s", "sha":"940bd336248efae0f9ee5bc7b2d5c985887b16ac"}`, jsonMap["tag"]))
@@ -175,7 +288,7 @@ func (mockClientProvider *mockClientProvider) Get(token string, ctx context.Cont
 	client := NewTestClient(func(req *http.Request) *http.Response {
 		for _, eval := range mockClientProvider.evaluations {
 			if eval.conditionFn(req) {
-				log.Println(req.URL.String())
+				log.Println("req.URL: ", req.URL.String())
 				return eval.responseFn(req)
 			}
 		}

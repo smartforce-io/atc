@@ -1,6 +1,8 @@
 package githubservice
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+)
 
 type PomXml struct {
 	Version string `xml:"version"`
@@ -22,6 +24,12 @@ func (pomXmlFetcher *pomXmlFetcher) GetVersion(ghContentProvider contentProvider
 	if err := unmarshalPomXml([]byte(content), pom); err != nil {
 		return "", err
 	}
+	if pom.Version == "" {
+		return "", errNoVers
+	}
 	return pom.Version, nil
+}
 
+func (pomXmlFetcher *pomXmlFetcher) GetVersionUsingDefaultPath(ghContentProvider contentProvider) (string, error) {
+	return pomXmlFetcher.GetVersion(ghContentProvider, "contents/pom.xml")
 }
