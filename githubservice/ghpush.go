@@ -116,7 +116,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf(".atc.yaml don't have regexstr for not default package manager file %s.", fetchType))
 				return
 			}
-			fetcher = &userConfigFetcher{}
+			fetcher = &customRegexFetcher{}
 		} else {
 			if settings.RegexStr != "" {
 				commitComment += fmt.Sprintf("Used default regexStr in file %s. ", fetchType)
