@@ -1,0 +1,11 @@
+# This is an example .atc.yaml file with some sensible defaults.
+# Make sure to check the documentation at https://github.com/smartforce-io/atc.
+path: "package.json"
+# You may remove this if you use default behavior: "after".
+behavior: "after"
+# You may remove this if you use default template: "v{{.Version}}".
+template: "v{{.Version}}"
+# You may remove this if you use default branch for tracking versions changes.
+branch: "release"
+# You may remove this if you use ATC default package manager.
+regexstr: "version: (.+)"
