@@ -190,17 +190,17 @@ func TestConfiguredPushAction(t *testing.T) {
 		expectedUrlPath string
 		messageError    string
 	}{
-		{`path: projectA/pom.xml`, `projectA/pom.xml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: projectA/contents/pom.xml`, `projectA/contents/pom.xml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: build.gradle`, `build.gradle`, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: contents/build.gradle`, `contents/build.gradle`, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: package.json`, `package.json`, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: contents/package.json`, `contents/package.json`, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: pubspec.yaml`, `pubspec.yaml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
-		{`path: contents/pubspec.yaml`, `contents/pubspec.yaml`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: projectA/pom.xml`, `projectA/pom.xml`, `Used default regexStr in file pom.xml. Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: projectA/contents/pom.xml`, `projectA/contents/pom.xml`, `Used default regexStr in file pom.xml. Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: build.gradle`, `build.gradle`, `Used default regexStr in file build.gradle. Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: contents/build.gradle`, `contents/build.gradle`, `Used default regexStr in file build.gradle. Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: package.json`, `package.json`, `Used default regexStr in file package.json. Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: contents/package.json`, `contents/package.json`, `Used default regexStr in file package.json. Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: pubspec.yaml`, `pubspec.yaml`, `Used default regexStr in file pubspec.yaml. Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: contents/pubspec.yaml`, `contents/pubspec.yaml`, `Used default regexStr in file pubspec.yaml. Added a new version for "Codertocat/Hello-World": "v5"`},
 		{`path: /projectA/pom.xml`, ``, `error config file .atc.yaml; path has prefix "/"`},
 		{`path: contents//build.gradle`, ``, `error config file .atc.yaml; path has "//"`},
-		{`path: asd.txt`, ``, `error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`},
+		{`path: test.txt`, ``, `Added a new version for "Codertocat/Hello-World": "v5"`},
 		{`path: `, ``, `File .atc.yaml not found or path = "". Used default settings. Added a new version for "Codertocat/Hello-World": "v5"`},
 	}
 
@@ -245,12 +245,18 @@ func TestConfiguredPushAction(t *testing.T) {
 		return defaultFn(req)
 	})
 
+	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_USERCONF", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		receivedUrl = req.URL.String()
+		return defaultFn(req)
+	})
+
 	for _, test := range testsConfigPath {
 		config = fmt.Sprintf(`
 %s
 behavior: before
 template: v{{.Version}}
-branch: main`, test.confString)
+branch: main
+regexstr: "vers: (.+)"`, test.confString)
 		receivedUrl = ""
 		message = ""
 
@@ -341,6 +347,11 @@ path: pubspec.yaml
 behavior: after
 template: FlutterV{{.Version}}
 branch: main`, "GET_OLD_VERSION_FLUTTER", "file pubspec.yaml with old version not found"},
+		{`
+path: test.txt
+behavior: after
+template: FlutterV{{.Version}}
+branch: main`, "GET_OLD_VERSION_USERCONF", ".atc.yaml don't have regexstr for not default package manager file test.txt."},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -453,6 +464,11 @@ path: pubspec.yaml
 behavior: after
 template: FlutterV{{.Version}}
 branch: main`, "GET_NEW_VERSION_FLUTTER", "file pubspec.yaml with new version not found"},
+		{`
+path: test.txt
+behavior: after
+template: FlutterV{{.Version}}
+branch: main`, "GET_NEW_VERSION_USERCONF", ".atc.yaml don't have regexstr for not default package manager file test.txt."},
 	}
 	p := github.WebHookPayload{}
 	json.Unmarshal([]byte(testWebhookPayload), &p)
@@ -608,6 +624,114 @@ branch: main`, test.confString)
 		if sha != test.expectedSha {
 			if message != errorMessage {
 				t.Errorf("Wrong sha! confString: %s\nexpected sha: %s, got sha: %s\nexpected err: %s, got err: %s", test.confString, test.expectedSha, sha, errorMessage, message)
+			}
+		}
+	}
+}
+
+func TestConfiguredBranch(t *testing.T) {
+	var testsConfigBehavior = []struct {
+		confString      string
+		expectedMessage string
+	}{
+		{`branch: test`, ``},
+		{`branch: main`, `Used default regexStr in file pom.xml. Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`branch: `, `Used default regexStr in file pom.xml. Added a new version for "Codertocat/Hello-World": "v5"`},
+		{``, `Used default regexStr in file pom.xml. Added a new version for "Codertocat/Hello-World": "v5"`},
+	}
+
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	var config string
+	var message string
+	errorMessageEmtry := `error config file .atc.yaml; behavior = ""`
+	errorMessage := `error config file .atc.yaml: behavior no contains "before" or "after"`
+
+	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(200, mockContentResponse(config))
+	})
+
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		json := getBodyJson(req)
+		message = fmt.Sprintf("%v", json["body"])
+		return defaultFn(req)
+	})
+
+	for _, test := range testsConfigBehavior {
+		config = fmt.Sprintf(`
+path: contents/pom.xml
+behavior: after
+template: v{{.Version}}
+%s
+regexstr: "vers: (.+)"`, test.confString)
+
+		message = ""
+
+		PushAction(&p, mockClientProviderPtr)
+
+		if message != test.expectedMessage {
+			if message != errorMessage && message != errorMessageEmtry {
+				t.Errorf("Wrong branch! confString: %s\nexpected: %s, got: %s\n", test.confString, test.expectedMessage, message)
+			}
+		}
+	}
+}
+
+func TestConfiguredRegexStr(t *testing.T) {
+	var testsConfigBehavior = []struct {
+		confPath        string
+		confRegexStr    string
+		expectedMessage string
+	}{
+		{`path: pom.xml`, `regexstr: "vers: (.+)"`, `Used default regexStr in file pom.xml. Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: pom.xml`, `regexstr: `, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: pom.xml`, ``, `Added a new version for "Codertocat/Hello-World": "v5"`},
+		{`path: test.txt`, ``, `.atc.yaml don't have regexstr for not default package manager file test.txt.`},
+		{`path: test.txt`, `regexstr: "vers: (.+)"`, `Added a new version for "Codertocat/Hello-World": "v5"`},
+	}
+
+	p := github.WebHookPayload{}
+	json.Unmarshal([]byte(testWebhookPayload), &p)
+
+	os.Setenv(envvars.PemData, testRsaKey)
+
+	mockClientProviderPtr := DefaultMockClientProvider()
+
+	var config string
+	var message string
+	errorMessageEmtry := `error config file .atc.yaml; behavior = ""`
+	errorMessage := `error config file .atc.yaml: behavior no contains "before" or "after"`
+
+	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		return newTestResponse(200, mockContentResponse(config))
+	})
+
+	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+		json := getBodyJson(req)
+		message = fmt.Sprintf("%v", json["body"])
+		return defaultFn(req)
+	})
+
+	for _, test := range testsConfigBehavior {
+		config = fmt.Sprintf(`
+%s
+behavior: after
+template: v{{.Version}}
+branch: main
+%s`, test.confPath, test.confRegexStr)
+
+		message = ""
+
+		PushAction(&p, mockClientProviderPtr)
+
+		if message != test.expectedMessage {
+			if message != errorMessage && message != errorMessageEmtry {
+				t.Errorf("Wrong branch! confString: %s\nexpected: %s, got: %s\n", test.confPath, test.expectedMessage, message)
 			}
 		}
 	}

@@ -13,8 +13,8 @@ var unmarshalPubspecYaml = func(content []byte, pubspecyamlPtr *PubspecYaml) err
 	return yaml.Unmarshal(content, pubspecyamlPtr)
 }
 
-func (pubspecyamlFetcher *pubspecyamlFetcher) GetVersion(ghContentProvider contentProvider, path string) (string, error) {
-	content, err := ghContentProvider.getContents(path)
+func (pubspecyamlFetcher *pubspecyamlFetcher) GetVersion(ghContentProvider contentProvider, settings AtcSettings) (string, error) {
+	content, err := ghContentProvider.getContents(settings.Path)
 	if err != nil {
 		return "", err
 	}
@@ -29,5 +29,5 @@ func (pubspecyamlFetcher *pubspecyamlFetcher) GetVersion(ghContentProvider conte
 }
 
 func (pubspecyamlFetcher *pubspecyamlFetcher) GetVersionUsingDefaultPath(ghContentProvider contentProvider) (string, error) {
-	return pubspecyamlFetcher.GetVersion(ghContentProvider, "pubspec.yaml")
+	return pubspecyamlFetcher.GetVersion(ghContentProvider, AtcSettings{Path: "pubspec.yaml"})
 }

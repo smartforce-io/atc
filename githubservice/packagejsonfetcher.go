@@ -15,8 +15,8 @@ var unmarshalPackageJson = func(content []byte, packagejsonPtr *PackageJson) err
 	return json.Unmarshal(content, packagejsonPtr)
 }
 
-func (packagejsonFetcher *packagejsonFetcher) GetVersion(ghContentProvider contentProvider, path string) (string, error) {
-	content, err := ghContentProvider.getContents(path)
+func (packagejsonFetcher *packagejsonFetcher) GetVersion(ghContentProvider contentProvider, settings AtcSettings) (string, error) {
+	content, err := ghContentProvider.getContents(settings.Path)
 	if err != nil {
 		return "", err
 	}
@@ -31,5 +31,5 @@ func (packagejsonFetcher *packagejsonFetcher) GetVersion(ghContentProvider conte
 }
 
 func (packagejsonFetcher *packagejsonFetcher) GetVersionUsingDefaultPath(ghContentProvider contentProvider) (string, error) {
-	return packagejsonFetcher.GetVersion(ghContentProvider, "package.json")
+	return packagejsonFetcher.GetVersion(ghContentProvider, AtcSettings{Path: "package.json"})
 }

@@ -3,7 +3,6 @@ package githubservice
 import (
 	"errors"
 	"log"
-	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -20,10 +19,11 @@ var unmarshal = func(content []byte, atcSettingsPtr *AtcSettings) error {
 }
 
 type AtcSettings struct {
-	Path     string `json:"path"`
-	Behavior string `json:"behavior"`
-	Template string `json:"template"`
-	Branch   string `json:"branch"`
+	Path     string `yaml:"path"`
+	Behavior string `yaml:"behavior"`
+	Template string `yaml:"template"`
+	Branch   string `yaml:"branch"`
+	RegexStr string `yaml:"regexstr"`
 }
 
 func validateSettings(settings *AtcSettings) error {
@@ -44,6 +44,8 @@ func validateSettings(settings *AtcSettings) error {
 		return errors.New(`error config file .atc.yaml: template doesn't contain "{{.Version}}"`)
 	}
 	//check Path:
+	pathPrefix := "/"
+
 	if settings.Path == "" {
 		return nil
 	}
@@ -52,15 +54,6 @@ func validateSettings(settings *AtcSettings) error {
 	}
 	if strings.Contains(settings.Path, "//") {
 		return errors.New(`error config file .atc.yaml; path has "//"`)
-	}
-	sufOk := false
-	for fether := range autoFetchers {
-		if filepath.Base(settings.Path) == fether {
-			sufOk = true
-		}
-	}
-	if !sufOk {
-		return errors.New(`error config file .atc.yaml: path no has suffix "pom.xml", "build.gradle", "package.json" or "pubspec.yaml"`)
 	}
 	return nil
 }

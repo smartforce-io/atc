@@ -91,7 +91,6 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 	}
 
 	settings, err := getAtcSetting(ghNewContentProviderPtr)
-
 	if err != nil {
 		log.Println("err. send user: ", err)
 		addComment(client, owner, repo, push.GetAfter(), fmt.Sprint(err))
@@ -112,21 +111,32 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		var err error
 		var reqError *RequestError
 		fetcher := autoFetchers[fetchType]
-		oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, settings.Path)
+		if fetcher == nil { //not default file
+			if settings.RegexStr == "" {
+				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf(".atc.yaml don't have regexstr for not default package manager file %s.", fetchType))
+				return
+			}
+			fetcher = &customRegexFetcher{}
+		} else {
+			if settings.RegexStr != "" {
+				commitComment += fmt.Sprintf("Used default regexStr in file %s. ", fetchType)
+			}
+		}
+		oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, *settings)
 		if err != nil && err != errHttpStatusCode { //ignore http api error
 			log.Printf("get prev version error for %q: %v", fullname, err)
-			if err == errNoVers {
+			if err == errNoVers || err == errNoGroupInConf {
 				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version err: %v", fetchType, err))
 			} else {
 				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version not found", fetchType))
 			}
 			return
 		}
-		newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, settings.Path)
+		newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, *settings)
 		if err != nil {
 			if err == errHttpStatusCode {
 				log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
-			} else if err == errNoVers {
+			} else if err == errNoVers || err == errNoGroupInConf {
 				log.Printf("get version error for %q: %v", fullname, err)
 				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with new version err: %v", fetchType, err))
 			} else {
@@ -147,7 +157,6 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 			}
 
 			newVersion, err = fetcher.GetVersionUsingDefaultPath(ghNewContentProviderPtr)
-
 			if err == nil {
 				fetched = true
 				commitComment += "Used default settings. "

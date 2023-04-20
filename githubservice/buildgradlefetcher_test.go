@@ -23,7 +23,7 @@ func TestBuildGradleFetcherBasic(t *testing.T) {
 
 	cp := mockContentProvider{basicBuildGradle, nil}
 
-	vers, err := fetcher.GetVersion(&cp, "build.gradle")
+	vers, err := fetcher.GetVersion(&cp, AtcSettings{Path: "build.gradle"})
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -122,7 +122,7 @@ func TestErrorGetVersionGradle(t *testing.T) {
 	cp := mockContentProvider{"", noContentErr}
 	bgf := &buildGradleFetcher{}
 	//test error get contents
-	_, err := bgf.GetVersion(&cp, "gradle")
+	_, err := bgf.GetVersion(&cp, AtcSettings{Path: "gradle"})
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}

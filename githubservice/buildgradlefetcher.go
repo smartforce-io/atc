@@ -19,15 +19,15 @@ var unmarshalBuildGradle = func(content []byte, buildGradlePtr *BuildGradle) err
 		return err
 	}
 	res := regex.FindStringSubmatch(string(content))
-	if len(res) < 3 {
+	if len(res) < 2 {
 		return errNoVers
 	}
 	buildGradlePtr.Version = res[2]
 	return nil
 }
 
-func (buildGradleFetcher *buildGradleFetcher) GetVersion(ghContentProvider contentProvider, path string) (string, error) {
-	content, err := ghContentProvider.getContents(path)
+func (buildGradleFetcher *buildGradleFetcher) GetVersion(ghContentProvider contentProvider, settings AtcSettings) (string, error) {
+	content, err := ghContentProvider.getContents(settings.Path)
 	if err != nil {
 		return "", err
 	}
@@ -39,5 +39,5 @@ func (buildGradleFetcher *buildGradleFetcher) GetVersion(ghContentProvider conte
 }
 
 func (buildGradleFetcher *buildGradleFetcher) GetVersionUsingDefaultPath(ghContentProvider contentProvider) (string, error) {
-	return buildGradleFetcher.GetVersion(ghContentProvider, "app/build.gradle")
+	return buildGradleFetcher.GetVersion(ghContentProvider, AtcSettings{Path: "app/build.gradle"})
 }
