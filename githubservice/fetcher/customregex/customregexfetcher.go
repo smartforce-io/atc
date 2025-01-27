@@ -4,9 +4,8 @@ import (
 	"errors"
 	"regexp"
 
-	"github.com/smartforce-io/atc/githubservice/provider"
-
 	"github.com/smartforce-io/atc/githubservice/fetcher"
+	"github.com/smartforce-io/atc/githubservice/provider"
 	"github.com/smartforce-io/atc/githubservice/settings"
 )
 
