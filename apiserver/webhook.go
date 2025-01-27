@@ -8,9 +8,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/smartforce-io/atc/githubservice"
-
 	"github.com/google/go-github/v39/github"
+
+	"github.com/smartforce-io/atc/githubservice/provider"
+	"github.com/smartforce-io/atc/githubservice/push"
 )
 
 type Webhook struct {
@@ -41,19 +42,19 @@ func (api *AtcApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		body = removeOrgFromWebhookRequest(body)
 
-		push := &github.WebHookPayload{}
-		if err := json.Unmarshal(body, push); err != nil {
+		p := &github.WebHookPayload{}
+		if err := json.Unmarshal(body, p); err != nil {
 			log.Printf("webhook json.Unmarshal Error: %v", err)
 			http.Error(w, "can't parse a webhook payload", http.StatusInternalServerError)
 			return
 		}
-		if push.Installation == nil || push.Installation.ID == nil {
-			log.Printf("push webhook doesn't contain installation info: %v", push)
-			http.Error(w, "push webhook doesn't contain installation info", http.StatusBadRequest)
+		if p.Installation == nil || p.Installation.ID == nil {
+			log.Printf("p webhook doesn't contain installation info: %v", p)
+			http.Error(w, "p webhook doesn't contain installation info", http.StatusBadRequest)
 			return
 		}
-		if strings.HasPrefix(push.GetRef(), "refs/heads/") {
-			go githubservice.PushAction(push, &githubservice.GithubClientProvider{}) //it's not clear who is resposible for DI
+		if strings.HasPrefix(p.GetRef(), "refs/heads/") {
+			go push.PushAction(p, &provider.GithubClientProvider{}) //it's not clear who is resposible for DI
 		}
 		w.WriteHeader(http.StatusOK)
 	default:

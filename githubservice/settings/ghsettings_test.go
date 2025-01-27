@@ -1,13 +1,15 @@
-package githubservice
+package settings
 
 import (
 	"errors"
 	"fmt"
 	"testing"
+
+	"github.com/smartforce-io/atc/githubservice/provider"
 )
 
 func failingAtcSettingsUnmarshal(content []byte, atcSettingsPtr *AtcSettings) error {
-	return errUnmarshal
+	return provider.ErrUnmarshal
 }
 
 var basicConfig = `
@@ -37,17 +39,17 @@ template: vGR{{.Version}}
 branch: test`, `build.gradle`, `after`, `vGR{{.Version}}`, `test`},
 	}
 
-	cp := mockContentProvider{basicConfig, nil}
+	cp := provider.MockContentProvider{Content: basicConfig}
 
-	_, err := getAtcSetting(&cp)
+	_, err := GetAtcSetting(&cp)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 		return
 	}
 
 	for _, test := range testsConfig {
-		cp = mockContentProvider{test.config, nil}
-		settings, _ := getAtcSetting(&cp)
+		cp = provider.MockContentProvider{Content: test.config}
+		settings, _ := GetAtcSetting(&cp)
 		if settings.Path != test.path {
 			t.Errorf("wrong settings Path! Got %q, wanted %q", settings.Path, test.path)
 		}
@@ -129,11 +131,11 @@ template: v{{.version}}
 branch: main`
 	emptySettings := &AtcSettings{}
 
-	cp := mockContentProvider{content: confFilStr, err: errGeneral}
-	set, err := getAtcSetting(&cp)
+	cp := provider.MockContentProvider{Content: confFilStr, Err: provider.ErrGeneral}
+	set, err := GetAtcSetting(&cp)
 
 	if set != emptySettings && err != nil {
-		t.Errorf("Invalid error, Got %v, wanted %v", err, errGeneral)
+		t.Errorf("Invalid error, Got %v, wanted %v", err, provider.ErrGeneral)
 	}
 }
 
@@ -142,11 +144,11 @@ func TestAtcSettingUnmarshalError(t *testing.T) {
 
 	unmarshal = failingAtcSettingsUnmarshal
 
-	cp := mockContentProvider{basicConfig, nil}
-	_, err := getAtcSetting(&cp)
+	cp := provider.MockContentProvider{Content: basicConfig}
+	_, err := GetAtcSetting(&cp)
 
 	if fmt.Sprint(err) != `error config file .atc.yaml; can't unmarshal file` {
-		t.Errorf("Invalid error, Got %v, wanted %v", err, errUnmarshal)
+		t.Errorf("Invalid error, Got %v, wanted %v", err, provider.ErrUnmarshal)
 	}
 
 	unmarshal = unmarshalcp

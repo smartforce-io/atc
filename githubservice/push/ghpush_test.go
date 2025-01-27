@@ -1,4 +1,4 @@
-package githubservice
+package push
 
 import (
 	"encoding/json"
@@ -11,12 +11,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/smartforce-io/atc/githubservice/provider"
+
 	"github.com/smartforce-io/atc/envvars"
 
 	"github.com/google/go-github/v39/github"
 )
 
-var testWebhookPayload = `
+var (
+	testWebhookPayload = `
 {
 	"ref": "refs/heads/main",
 	"before": "6113728f27ae82c7b1a177c8d03f9e96e0adf246",
@@ -155,6 +158,48 @@ var testWebhookPayload = `
 	}
 }
 `
+	testRsaKey = `
+-----BEGIN RSA PRIVATE KEY-----
+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
+-----END RSA PRIVATE KEY-----
+`
+)
 
 func TestPushActionBasic(t *testing.T) {
 	p := github.WebHookPayload{}
@@ -162,17 +207,17 @@ func TestPushActionBasic(t *testing.T) {
 
 	os.Setenv(envvars.PemData, testRsaKey)
 
-	mockClientProviderPtr := DefaultMockClientProvider()
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
 
 	commentCreated := false
 	expectedMessage := `File .atc.yaml not found or path = "". Used default settings. Added a new version for "Codertocat/Hello-World": "v5"`
 	var message string
 
-	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.OverrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
 		commentCreated = true
 		log.Println("req.Body: ", req.Body)
-		json := getBodyJson(req)
-		message = fmt.Sprintf("%v", json["body"])
+		j := provider.GetBodyJson(req)
+		message = fmt.Sprintf("%v", j["body"])
 		return defaultFn(req)
 	})
 	PushAction(&p, mockClientProviderPtr)
@@ -209,43 +254,43 @@ func TestConfiguredPushAction(t *testing.T) {
 
 	os.Setenv(envvars.PemData, testRsaKey)
 
-	mockClientProviderPtr := DefaultMockClientProvider()
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
 
 	var receivedUrl string
 	var config string
 	var message string
 
-	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(200, mockContentResponse(config))
+	mockClientProviderPtr.OverrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(200, provider.MockContentResponse(config))
 	})
 
-	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		json := getBodyJson(req)
+	mockClientProviderPtr.OverrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		json := provider.GetBodyJson(req)
 		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_MAVEN", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.OverrideResponseFn("GET_NEW_VERSION_MAVEN", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
 		receivedUrl = req.URL.String()
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_GRADLE", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.OverrideResponseFn("GET_NEW_VERSION_GRADLE", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
 		receivedUrl = req.URL.String()
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_NPM", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.OverrideResponseFn("GET_NEW_VERSION_NPM", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
 		receivedUrl = req.URL.String()
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_FLUTTER", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.OverrideResponseFn("GET_NEW_VERSION_FLUTTER", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
 		receivedUrl = req.URL.String()
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_USERCONF", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.OverrideResponseFn("GET_NEW_VERSION_USERCONF", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
 		receivedUrl = req.URL.String()
 		return defaultFn(req)
 	})
@@ -281,33 +326,33 @@ func TestMissedOldNewVersionNoConfig(t *testing.T) {
 
 	os.Setenv(envvars.PemData, testRsaKey)
 
-	mockClientProviderPtr := DefaultMockClientProvider()
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
 
 	commentCreated := false
 	expectedMessage := `File .atc.yaml not found or path = "". Not found supported package manager.`
 	var message string
 
-	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.OverrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
 		commentCreated = true
-		json := getBodyJson(req)
+		json := provider.GetBodyJson(req)
 		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_MAVEN", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(404, "not found")
+	mockClientProviderPtr.OverrideResponseFn("GET_OLD_VERSION_MAVEN", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(404, "not found")
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_GRADLE", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(404, "not found")
+	mockClientProviderPtr.OverrideResponseFn("GET_OLD_VERSION_GRADLE", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(404, "not found")
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_NPM", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(404, "not found")
+	mockClientProviderPtr.OverrideResponseFn("GET_OLD_VERSION_NPM", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(404, "not found")
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_OLD_VERSION_FLUTTER", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(404, "not found")
+	mockClientProviderPtr.OverrideResponseFn("GET_OLD_VERSION_FLUTTER", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(404, "not found")
 	})
 
 	PushAction(&p, mockClientProviderPtr)
@@ -358,25 +403,25 @@ branch: main`, "GET_OLD_VERSION_USERCONF", ".atc.yaml don't have regexstr for no
 
 	os.Setenv(envvars.PemData, testRsaKey)
 
-	mockClientProviderPtr := DefaultMockClientProvider()
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
 
 	commentCreated := false
 	var message string
 
-	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.OverrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
 		commentCreated = true
-		json := getBodyJson(req)
+		json := provider.GetBodyJson(req)
 		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
 
 	for _, test := range testsMissVersion {
-		mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-			return newTestResponse(200, mockContentResponse(test.confString))
+		mockClientProviderPtr.OverrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+			return provider.NewTestResponse(200, provider.MockContentResponse(test.confString))
 		})
 
-		mockClientProviderPtr.overrideResponseFn(test.defMockClientPrKeyVersion, func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-			return newTestResponse(404, "not found")
+		mockClientProviderPtr.OverrideResponseFn(test.defMockClientPrKeyVersion, func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+			return provider.NewTestResponse(404, "not found")
 		})
 		message = ""
 
@@ -398,33 +443,33 @@ func TestMissedNewVersionNoConfig(t *testing.T) {
 
 	os.Setenv(envvars.PemData, testRsaKey)
 
-	mockClientProviderPtr := DefaultMockClientProvider()
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
 
 	commentCreated := false
 	expectedMessage := `File .atc.yaml not found or path = "". Not found supported package manager.`
 	var message string
 
-	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.OverrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
 		commentCreated = true
-		json := getBodyJson(req)
+		json := provider.GetBodyJson(req)
 		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_MAVEN", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(404, "not found")
+	mockClientProviderPtr.OverrideResponseFn("GET_NEW_VERSION_MAVEN", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(404, "not found")
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_GRADLE", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(404, "not found")
+	mockClientProviderPtr.OverrideResponseFn("GET_NEW_VERSION_GRADLE", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(404, "not found")
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_NPM", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(404, "not found")
+	mockClientProviderPtr.OverrideResponseFn("GET_NEW_VERSION_NPM", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(404, "not found")
 	})
 
-	mockClientProviderPtr.overrideResponseFn("GET_NEW_VERSION_FLUTTER", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(404, "not found")
+	mockClientProviderPtr.OverrideResponseFn("GET_NEW_VERSION_FLUTTER", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(404, "not found")
 	})
 
 	PushAction(&p, mockClientProviderPtr)
@@ -475,25 +520,25 @@ branch: main`, "GET_NEW_VERSION_USERCONF", ".atc.yaml don't have regexstr for no
 
 	os.Setenv(envvars.PemData, testRsaKey)
 
-	mockClientProviderPtr := DefaultMockClientProvider()
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
 
 	commentCreated := false
 	var message string
 
-	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
+	mockClientProviderPtr.OverrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
 		commentCreated = true
-		json := getBodyJson(req)
-		message = fmt.Sprintf("%v", json["body"])
+		j := provider.GetBodyJson(req)
+		message = fmt.Sprintf("%v", j["body"])
 		return defaultFn(req)
 	})
 
 	for _, test := range testsMissVersion {
-		mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-			return newTestResponse(200, mockContentResponse(test.confString))
+		mockClientProviderPtr.OverrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+			return provider.NewTestResponse(200, provider.MockContentResponse(test.confString))
 		})
 
-		mockClientProviderPtr.overrideResponseFn(test.defMockClientPrKeyVersion, func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-			return newTestResponse(404, "not found")
+		mockClientProviderPtr.OverrideResponseFn(test.defMockClientPrKeyVersion, func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+			return provider.NewTestResponse(404, "not found")
 		})
 		message = ""
 
@@ -528,24 +573,24 @@ func TestConfiguredTagTemplate(t *testing.T) {
 
 	os.Setenv(envvars.PemData, testRsaKey)
 
-	mockClientProviderPtr := DefaultMockClientProvider()
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
 
 	var message string
 	var tag string
 	var config string
 
-	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(200, mockContentResponse(config))
+	mockClientProviderPtr.OverrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(200, provider.MockContentResponse(config))
 	})
 
-	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		json := getBodyJson(req)
-		message = fmt.Sprintf("%v", json["body"])
+	mockClientProviderPtr.OverrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		j := provider.GetBodyJson(req)
+		message = fmt.Sprintf("%v", j["body"])
 		return defaultFn(req)
 	})
-	mockClientProviderPtr.overrideResponseFn("ADD_TAG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		json := getBodyJson(req)
-		tag = fmt.Sprintf("%v", json["tag"])
+	mockClientProviderPtr.OverrideResponseFn("ADD_TAG", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		j := provider.GetBodyJson(req)
+		tag = fmt.Sprintf("%v", j["tag"])
 		return defaultFn(req)
 	})
 
@@ -587,26 +632,26 @@ func TestConfiguredTagBehavior(t *testing.T) {
 
 	os.Setenv(envvars.PemData, testRsaKey)
 
-	mockClientProviderPtr := DefaultMockClientProvider()
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
 
 	var config string
 	var sha string
 	var message string
 	errorMessage := `error config file .atc.yaml: behavior doesn't contain "before" or "after"`
 
-	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(200, mockContentResponse(config))
+	mockClientProviderPtr.OverrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(200, provider.MockContentResponse(config))
 	})
 
-	mockClientProviderPtr.overrideResponseFn("ADD_TAG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		json := getBodyJson(req)
-		sha = fmt.Sprintf("%v", json["object"])
+	mockClientProviderPtr.OverrideResponseFn("ADD_TAG", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		j := provider.GetBodyJson(req)
+		sha = fmt.Sprintf("%v", j["object"])
 		return defaultFn(req)
 	})
 
-	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		json := getBodyJson(req)
-		message = fmt.Sprintf("%v", json["body"])
+	mockClientProviderPtr.OverrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		j := provider.GetBodyJson(req)
+		message = fmt.Sprintf("%v", j["body"])
 		return defaultFn(req)
 	})
 
@@ -645,19 +690,19 @@ func TestConfiguredBranch(t *testing.T) {
 
 	os.Setenv(envvars.PemData, testRsaKey)
 
-	mockClientProviderPtr := DefaultMockClientProvider()
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
 
 	var config string
 	var message string
 	errorMessageEmtry := `error config file .atc.yaml; behavior = ""`
 	errorMessage := `error config file .atc.yaml: behavior no contains "before" or "after"`
 
-	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(200, mockContentResponse(config))
+	mockClientProviderPtr.OverrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(200, provider.MockContentResponse(config))
 	})
 
-	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		json := getBodyJson(req)
+	mockClientProviderPtr.OverrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		json := provider.GetBodyJson(req)
 		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
@@ -700,19 +745,19 @@ func TestConfiguredRegexStr(t *testing.T) {
 
 	os.Setenv(envvars.PemData, testRsaKey)
 
-	mockClientProviderPtr := DefaultMockClientProvider()
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
 
 	var config string
 	var message string
 	errorMessageEmtry := `error config file .atc.yaml; behavior = ""`
 	errorMessage := `error config file .atc.yaml: behavior no contains "before" or "after"`
 
-	mockClientProviderPtr.overrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		return newTestResponse(200, mockContentResponse(config))
+	mockClientProviderPtr.OverrideResponseFn("GET_ATC_CONFIG", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		return provider.NewTestResponse(200, provider.MockContentResponse(config))
 	})
 
-	mockClientProviderPtr.overrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn RoundTripFunc) *http.Response {
-		json := getBodyJson(req)
+	mockClientProviderPtr.OverrideResponseFn("ADD_COMMENT", func(req *http.Request, defaultFn provider.RoundTripFunc) *http.Response {
+		json := provider.GetBodyJson(req)
 		message = fmt.Sprintf("%v", json["body"])
 		return defaultFn(req)
 	})
@@ -765,7 +810,7 @@ func TestMadeСaptionToTemplateError(t *testing.T) {
 		version   string
 		errString string
 	}{
-		{`v{{.Versio}}`, `1.0`, `template: template tagContent:1:3: executing "template tagContent" at <.Versio>: can't evaluate field Versio in type githubservice.TagContent`},
+		{`v{{.Versio}}`, `1.0`, `template: template tagContent:1:3: executing "template tagContent" at <.Versio>: can't evaluate field Versio in type provider.TagContent`},
 	}
 	for _, test := range tests {
 		_, err := renderTagNameTemplate(test.template, test.version)
