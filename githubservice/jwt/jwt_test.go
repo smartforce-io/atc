@@ -1,4 +1,4 @@
-package githubservice
+package jwt
 
 import (
 	"crypto/x509"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/smartforce-io/atc/envvars"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 )
 
 const (
@@ -72,7 +72,7 @@ SVTNuYebdT0XAgMBAAE=
 func TestJwtBasic(t *testing.T) {
 	os.Setenv(envvars.AppId, expectedIss)
 
-	tokenStr, err := getJwt([]byte(testRsaKey))
+	tokenStr, err := GetJwt([]byte(testRsaKey))
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)

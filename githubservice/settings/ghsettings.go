@@ -1,15 +1,17 @@
-package githubservice
+package settings
 
 import (
 	"errors"
 	"log"
 	"strings"
 
+	"github.com/smartforce-io/atc/githubservice/provider"
+
 	"gopkg.in/yaml.v2"
 )
 
 const (
-	behaviorBefore = "before"
+	BehaviorBefore = "before"
 	behaviorAfter  = "after"
 	pathPrefix     = "/"
 )
@@ -36,7 +38,7 @@ func validateSettings(settings *AtcSettings) error {
 	}
 
 	//check Behavior:
-	if strings.ToLower(settings.Behavior) != behaviorAfter && strings.ToLower(settings.Behavior) != behaviorBefore {
+	if strings.ToLower(settings.Behavior) != behaviorAfter && strings.ToLower(settings.Behavior) != BehaviorBefore {
 		return errors.New(`error config file .atc.yaml: behavior doesn't contain "before" or "after"`)
 	}
 	//check Template:
@@ -58,10 +60,10 @@ func validateSettings(settings *AtcSettings) error {
 	return nil
 }
 
-func getAtcSetting(ghcp contentProvider) (*AtcSettings, error) {
+func GetAtcSetting(ghcp provider.ContentProvider) (*AtcSettings, error) {
 	settings := &AtcSettings{}
 
-	content, err := ghcp.getContents(".atc.yaml")
+	content, err := ghcp.GetContents(".atc.yaml")
 	if err != nil {
 		log.Printf("get .atc.yaml error: %s. Used default settings", err)
 		return &AtcSettings{Behavior: "after", Template: "v{{.Version}}"}, nil
