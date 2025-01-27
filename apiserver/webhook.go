@@ -2,7 +2,7 @@ package apiserver
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"regexp"
@@ -26,7 +26,7 @@ func (api *AtcApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 	switch event := r.Header.Get("X-GitHub-Event"); event {
 	case "marketplace_purchase":
 		w.WriteHeader(http.StatusOK)
-		body, _ := ioutil.ReadAll(r.Body)
+		body, _ := io.ReadAll(r.Body)
 		log.Printf("markeplace purchase event: \n %s \n", body)
 
 	case "create":
@@ -38,7 +38,7 @@ func (api *AtcApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("success"))
 
 	case "push":
-		body, _ := ioutil.ReadAll(r.Body)
+		body, _ := io.ReadAll(r.Body)
 		body = removeOrgFromWebhookRequest(body)
 
 		push := &github.WebHookPayload{}

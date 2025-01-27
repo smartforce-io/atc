@@ -2,7 +2,7 @@ package apiserver
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 )
@@ -43,7 +43,7 @@ func TestWebhook(t *testing.T) {
 	for _, test := range tests {
 		var jsonStr = []byte(test.strForBody)
 		req := &http.Request{
-			Body:   ioutil.NopCloser(bytes.NewBufferString(string(jsonStr))),
+			Body:   io.NopCloser(bytes.NewBufferString(string(jsonStr))),
 			Header: make(http.Header),
 		}
 		resp := &maskResponseWriter{}

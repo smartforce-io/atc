@@ -3,7 +3,6 @@ package githubservice
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -24,7 +23,7 @@ func getAccessToken(id int64, clientProvider ClientProvider) (string, error) {
 		if pemPath == "" {
 			return "", errNoPemEnv
 		}
-		pemData, err = ioutil.ReadFile(pemPath)
+		pemData, err = os.ReadFile(pemPath)
 		if err != nil {
 			return "", err
 		}
