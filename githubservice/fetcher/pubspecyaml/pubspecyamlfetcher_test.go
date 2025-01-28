@@ -70,7 +70,7 @@ func TestUnmarshalErrorPubspecYaml(t *testing.T) {
 		content string
 		err     string
 	}{
-		{`v1.1`, "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `v1.1` into githubservice.PubspecYaml"},
+		{`v1.1`, "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `v1.1` into pubspecyaml.PubspecYaml"},
 	}
 	for _, test := range tests {
 		pubspecyaml := &PubspecYaml{}

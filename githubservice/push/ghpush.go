@@ -172,7 +172,7 @@ func PushAction(push *github.WebHookPayload, clientProvider provider.ClientProvi
 			newVersion, err = versionFetcher.GetVersionUsingDefaultPath(ghNewContentProviderPtr)
 			if err == nil {
 				fetched = true
-				commitComment += "Used default setting. "
+				commitComment += "Used default settings. "
 				break
 			} else {
 				log.Printf("autofetcher error for %q: %v", defaultPath, err)
