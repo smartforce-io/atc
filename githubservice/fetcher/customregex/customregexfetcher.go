@@ -2,10 +2,9 @@ package customregex
 
 import (
 	"errors"
+	"regexp"
 
 	"github.com/smartforce-io/atc/githubservice/provider"
-
-	"regexp"
 
 	"github.com/smartforce-io/atc/githubservice/fetcher"
 	"github.com/smartforce-io/atc/githubservice/settings"

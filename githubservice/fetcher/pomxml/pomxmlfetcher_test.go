@@ -3,10 +3,9 @@ package pomxml
 import (
 	"errors"
 	"fmt"
+	"testing"
 
 	"github.com/smartforce-io/atc/githubservice/provider"
-
-	"testing"
 
 	"github.com/smartforce-io/atc/githubservice/fetcher"
 	"github.com/smartforce-io/atc/githubservice/settings"

@@ -38,7 +38,7 @@ func (api *AtcApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("success"))
 
-	case "p":
+	case "push":
 		body, _ := ioutil.ReadAll(r.Body)
 		body = removeOrgFromWebhookRequest(body)
 

@@ -3,7 +3,6 @@ package customregex
 import (
 	"errors"
 	"fmt"
-
 	"testing"
 
 	"github.com/smartforce-io/atc/githubservice/provider"
