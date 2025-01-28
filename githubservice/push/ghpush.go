@@ -11,13 +11,12 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/smartforce-io/atc/githubservice/accesstoken"
 	"github.com/smartforce-io/atc/githubservice/fetcher"
 	"github.com/smartforce-io/atc/githubservice/fetcher/customregex"
 	"github.com/smartforce-io/atc/githubservice/fetcher/packagejson"
 	"github.com/smartforce-io/atc/githubservice/fetcher/pubspecyaml"
 	"github.com/smartforce-io/atc/githubservice/gitutil"
-	"github.com/smartforce-io/atc/githubservice/provider/accesstoken"
-
 	"github.com/smartforce-io/atc/githubservice/provider"
 	"github.com/smartforce-io/atc/githubservice/settings"
 
