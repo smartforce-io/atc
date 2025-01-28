@@ -810,7 +810,7 @@ func TestMadeСaptionToTemplateError(t *testing.T) {
 		version   string
 		errString string
 	}{
-		{`v{{.Versio}}`, `1.0`, `template: template tagContent:1:3: executing "template tagContent" at <.Versio>: can't evaluate field Versio in type provider.TagContent`},
+		{`v{{.Versio}}`, `1.0`, `template: template tagContent:1:3: executing "template tagContent" at <.Versio>: can't evaluate field Versio in type push.TagContent`},
 	}
 	for _, test := range tests {
 		_, err := renderTagNameTemplate(test.template, test.version)
