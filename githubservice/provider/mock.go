@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
@@ -116,7 +115,7 @@ func NewTestClient(fn RoundTripFunc) *http.Client {
 func NewTestResponse(status int, response string) *http.Response {
 	return &http.Response{
 		StatusCode: status,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(response)),
+		Body:       io.NopCloser(bytes.NewBufferString(response)),
 		// Must be set to non-nil value or it panics
 		Header: make(http.Header),
 	}

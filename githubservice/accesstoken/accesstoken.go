@@ -3,7 +3,6 @@ package accesstoken
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -27,7 +26,7 @@ func GetAccessToken(id int64, clientProvider provider.ClientProvider) (string, e
 		if pemPath == "" {
 			return "", jwt.ErrNoPemEnv
 		}
-		pemData, err = ioutil.ReadFile(pemPath)
+		pemData, err = os.ReadFile(pemPath)
 		if err != nil {
 			return "", err
 		}
