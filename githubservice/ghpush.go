@@ -3,14 +3,17 @@ package githubservice
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
 
 	"github.com/google/go-github/v39/github"
+	"golang.org/x/oauth2"
 )
 
 type TagContent struct {
@@ -102,56 +105,156 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		return
 	}
 
-	commitComment := ""
-	newVersion := ""
-	oldVersion := ""
-	fetchType := detectFetchType(settings.Path)
+	var commitComment string
+	caption, err := fetch(settings, ghOldContentProviderPtr, ghNewContentProviderPtr, fullname)
+	if err != nil {
+		log.Printf("fetch version error: %v", err)
+		return
+	}
+	sha := *getShaByBehavior(push, settings.Behavior)
+	objType := "commit"
+	timestamp := time.Now()
 
+	tag := &github.Tag{
+		Tag:     &caption,
+		Message: &caption,
+		Tagger: &github.CommitAuthor{
+			Date:  &timestamp,
+			Name:  push.GetPusher().Name,
+			Email: push.GetPusher().Email,
+			Login: push.GetPusher().Login,
+		},
+		Object: &github.GitObject{
+			Type: &objType,
+			SHA:  &sha,
+		},
+	}
+
+	if err = addTagToCommit(client, owner, repo, tag); err != nil {
+		log.Printf("addTagToCommit Error for %q: %v", fullname, err)
+		addComment(client, owner, repo, sha, fmt.Sprintf("can't add tag to commit, error : %v", err))
+		return
+	}
+
+	commitComment += fmt.Sprintf("Added a new version for %q: %q", fullname, caption)
+	addComment(client, owner, repo, sha, commitComment)
+}
+
+func CIPushAction() error {
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	fullname := os.Getenv("GITHUB_REPOSITORY")
+	commitSHA := os.Getenv("COMMIT_SHA")
+
+	settings := &AtcSettings{
+		Path:     os.Getenv("FILE_TYPE"),
+		Behavior: os.Getenv("BEHAVIOR"),
+		Template: os.Getenv("TEMPLATE"),
+	}
+
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: githubToken},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+
+	s := strings.Split(fullname, "/")
+	owner := s[0]
+	repo := s[1]
+
+	commit, _, err := client.Repositories.GetCommit(ctx, owner, repo, commitSHA, nil)
+	if err != nil {
+		return fmt.Errorf("error getting commit %s %v", commitSHA, err)
+	}
+
+	parents := commit.Parents
+	if len(parents) == 0 {
+		log.Printf("this branch has no older commits")
+		return nil
+	}
+
+	ghOldContentProviderPtr := &ghContentProvider{
+		owner:    owner,
+		repo:     repo,
+		ref:      parents[0].GetSHA(),
+		ctx:      ctx,
+		ghClient: client,
+	}
+	ghNewContentProviderPtr := &ghContentProvider{
+		owner:    owner,
+		repo:     repo,
+		ref:      commitSHA,
+		ctx:      ctx,
+		ghClient: client,
+	}
+
+	var sha string
+
+	caption, err := fetch(settings, ghOldContentProviderPtr, ghNewContentProviderPtr, fullname)
+	if err != nil {
+		return fmt.Errorf("fetch version error: %v", err)
+	}
+
+	if settings.Behavior == behaviorAfter {
+		sha = commit.GetSHA()
+	} else {
+		sha = parents[0].GetSHA()
+	}
+
+	objType := "commit"
+	timestamp := time.Now()
+
+	tag := &github.Tag{
+		Tag:     &caption,
+		Message: &caption,
+		Tagger: &github.CommitAuthor{
+			Date:  &timestamp,
+			Name:  commit.Commit.Author.Name,
+			Email: commit.Commit.Author.Email,
+			Login: commit.Commit.Author.Login,
+		},
+		Object: &github.GitObject{
+			Type: &objType,
+			SHA:  &sha,
+		},
+	}
+
+	if err = addTagToCommit(client, owner, repo, tag); err != nil {
+		return fmt.Errorf("error when adding tag to commit %q: %v", fullname, err)
+	}
+
+	log.Printf("Added a new version for %q: %q", fullname, caption)
+	return nil
+}
+
+func fetch(settings *AtcSettings, ghOldContentProviderPtr,
+	ghNewContentProviderPtr contentProvider, fullname string) (string, error) {
+	fetchType := detectFetchType(settings.Path)
+	var newVersion string
+	var oldVersion string
 	if fetchType != "" {
 		var err error
-		var reqError *RequestError
 		fetcher := autoFetchers[fetchType]
-		if fetcher == nil { //not default file
-			if settings.RegexStr == "" {
-				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf(".atc.yaml don't have regexstr for not default package manager file %s.", fetchType))
-				return
-			}
+		if fetcher == nil {
+			log.Printf("using custom fetcher")
 			fetcher = &customRegexFetcher{}
-		} else {
-			if settings.RegexStr != "" {
-				commitComment += fmt.Sprintf("Used default regexStr in file %s. ", fetchType)
-			}
 		}
+
 		oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, *settings)
-		if err != nil && err != errHttpStatusCode { //ignore http api error
-			log.Printf("get prev version error for %q: %v", fullname, err)
-			if err == errNoVers || err == errNoGroupInConf {
-				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version err: %v", fetchType, err))
-			} else {
-				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version not found", fetchType))
-			}
-			return
+		if err != nil && !errors.Is(err, errHttpStatusCode) { //ignore http api error
+			return "", fmt.Errorf("get prev version error for %q: %w", fullname, err)
 		}
+		log.Printf("old version %s", oldVersion)
 		newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, *settings)
 		if err != nil {
-			if err == errHttpStatusCode {
-				log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
-			} else if err == errNoVers || err == errNoGroupInConf {
-				log.Printf("get version error for %q: %v", fullname, err)
-				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with new version err: %v", fetchType, err))
-			} else {
-				log.Printf("get version error for %q: %v", fullname, err)
-				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with new version not found", fetchType))
-			}
-			return
+			return "", fmt.Errorf("get new version error for %q: %w", fullname, err)
 		}
 	} else {
-		commitComment = `File .atc.yaml not found or path = "". `
 		fetched := false
 		for defaultPath, fetcher := range autoFetchers {
 			var err error
 			oldVersion, err = fetcher.GetVersionUsingDefaultPath(ghOldContentProviderPtr)
-			if err != nil && err != errHttpStatusCode { //ignore http api error
+			if err != nil && !errors.Is(err, errHttpStatusCode) { //ignore http api error
 				log.Printf("get prev version error for %q, default path: %s, err: %v", fullname, defaultPath, err)
 				continue
 			}
@@ -159,17 +262,13 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 			newVersion, err = fetcher.GetVersionUsingDefaultPath(ghNewContentProviderPtr)
 			if err == nil {
 				fetched = true
-				commitComment += "Used default settings. "
 				break
 			} else {
 				log.Printf("autofetcher error for %q: %v", defaultPath, err)
 			}
 		}
 		if !fetched {
-			commitComment += "Not found supported package manager."
-			addComment(client, owner, repo, push.GetAfter(), commitComment)
-			log.Printf("Unable to fetch version using known methods!") //probably should be comment
-			return
+			return "", fmt.Errorf("unable to fetch version using known methods")
 		}
 	}
 
@@ -178,34 +277,10 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		caption, err := renderTagNameTemplate(settings.Template, newVersion)
 		if err != nil {
 			log.Printf("error in go templates: %v", err)
-			return
+			return "", fmt.Errorf("error in go templates: %v", err)
 		}
-		sha := *getShaByBehavior(push, settings.Behavior)
-		objType := "commit"
-		timestamp := time.Now()
-
-		tag := &github.Tag{
-			Tag:     &caption,
-			Message: &caption,
-			Tagger: &github.CommitAuthor{
-				Date:  &timestamp,
-				Name:  push.GetPusher().Name,
-				Email: push.GetPusher().Email,
-				Login: push.GetPusher().Login,
-			},
-			Object: &github.GitObject{
-				Type: &objType,
-				SHA:  &sha,
-			},
-		}
-
-		if err := addTagToCommit(client, owner, repo, tag); err != nil {
-			log.Printf("addTagToCommit Error for %q: %v", fullname, err)
-			addComment(client, owner, repo, sha, fmt.Sprintf("can't add tag to commit, error : %v", err))
-			return
-		}
-
-		commitComment += fmt.Sprintf("Added a new version for %q: %q", fullname, caption)
-		addComment(client, owner, repo, sha, commitComment)
+		return caption, nil
 	}
+
+	return "", nil
 }
