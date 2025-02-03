@@ -12,7 +12,7 @@ name: newtify
 description: >-
 `
 
-var failingPubspecYamlFetcherUnmarshal = func(content []byte, pubspecyaml *PubspecYaml) error {
+var failingPubspecYamlFetcherUnmarshal = func(content []byte, pubspecyaml *Yaml) error {
 	return errUnmarshal
 }
 
@@ -49,8 +49,8 @@ version: 1.2.2`, `1.2.2`},
 		{``, ""},
 	}
 	for _, test := range tests {
-		pubspecyaml := &PubspecYaml{}
-		err := unmarshalPubspecYaml([]byte(test.content), pubspecyaml)
+		pubspecyaml := &Yaml{}
+		err := unmarshalYaml([]byte(test.content), pubspecyaml)
 		if err != nil {
 			t.Errorf("Error unmarshal: %v", err)
 			if pubspecyaml.Version != test.version {
@@ -65,11 +65,11 @@ func TestUnmarshalErrorPubspecYaml(t *testing.T) {
 		content string
 		err     string
 	}{
-		{`v1.1`, "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `v1.1` into githubservice.PubspecYaml"},
+		{`v1.1`, "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `v1.1` into githubservice.Yaml"},
 	}
 	for _, test := range tests {
-		pubspecyaml := &PubspecYaml{}
-		if err := unmarshalPubspecYaml([]byte(test.content), pubspecyaml); fmt.Sprintf("%s", err) != test.err {
+		pubspecyaml := &Yaml{}
+		if err := unmarshalYaml([]byte(test.content), pubspecyaml); fmt.Sprintf("%s", err) != test.err {
 			t.Errorf("Error for content: %s\nexpected err: %v, got err: %v", test.content, test.err, err)
 		}
 	}
@@ -102,9 +102,9 @@ func TestErrorGetVersionPubspecYaml(t *testing.T) {
 func TestPubspecYamlFetcherUnmarshalError(t *testing.T) {
 	fetcher := pubspecyamlFetcher{}
 
-	unmarshalPubspecYamlCopy := unmarshalPubspecYaml
+	unmarshalPubspecYamlCopy := unmarshalYaml
 
-	unmarshalPubspecYaml = failingPubspecYamlFetcherUnmarshal
+	unmarshalYaml = failingPubspecYamlFetcherUnmarshal
 
 	cp := mockContentProvider{"", nil}
 
@@ -114,5 +114,5 @@ func TestPubspecYamlFetcherUnmarshalError(t *testing.T) {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, errUnmarshal)
 	}
 
-	unmarshalPubspecYaml = unmarshalPubspecYamlCopy
+	unmarshalYaml = unmarshalPubspecYamlCopy
 }
