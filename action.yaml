@@ -9,10 +9,6 @@ inputs:
   secrets:
     description: 'Token to access repository'
     required: true
-  commit:
-    description: 'Commit that triggered the action.'
-    default: ${{ github.sha }}
-    required: false
   behavior:
     description: 'ATC can create tag for current commit.
     Use after for this, or previous commit, use before for this.
@@ -23,10 +19,6 @@ inputs:
     description: 'The default template is "v{{.Version}}'
     required: false
     default: v{{.Version}}
-  repository:
-    description: 'Repository for tag creation'
-    required: false
-    default: ${{ github.repository }}
 
 runs:
   using: 'docker'
@@ -34,8 +26,8 @@ runs:
   env:
     GITHUB_TOKEN: ${{ inputs.secrets }}
     FILE_TYPE: ${{ inputs.type }}
-    COMMIT_SHA: ${{ inputs.commit }}
-    GITHUB_REPOSITORY: ${{ inputs.repository }}
+    COMMIT_SHA: ${{ github.sha }}
+    GITHUB_REPOSITORY: ${{ github.repository }}
     BEHAVIOR: ${{ inputs.behavior }}
     TEMPLATE: ${{ inputs.template }}
 
