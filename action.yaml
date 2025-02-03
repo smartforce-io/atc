@@ -26,14 +26,26 @@ inputs:
     default: 'version: (.+)'
 
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  env:
-    GITHUB_TOKEN: ${{ inputs.secrets }}
-    FILE_TYPE: ${{ inputs.type }}
-    COMMIT_SHA: ${{ github.sha }}
-    GITHUB_REPOSITORY: ${{ github.repository }}
-    BEHAVIOR: ${{ inputs.behavior }}
-    TEMPLATE: ${{ inputs.template }}
-    REGEX: ${{ inputs.regex }}
+  using: 'composite'
+  steps:
 
+    - name: Build and Run Docker Container
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.secrets }}
+        FILE_TYPE: ${{ inputs.type }}
+        COMMIT_SHA: ${{ github.sha }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        BEHAVIOR: ${{ inputs.behavior }}
+        TEMPLATE: ${{ inputs.template }}
+        REGEX: ${{ inputs.regex }}
+      run: |
+        docker build -t automated-tag-creator .
+        docker run --rm \
+          -e GITHUB_TOKEN=$GITHUB_TOKEN \
+          -e FILE_TYPE=$FILE_TYPE \
+          -e COMMIT_SHA=$COMMIT_SHA \
+          -e GITHUB_REPOSITORY=$GITHUB_REPOSITORY \
+          -e BEHAVIOR=$BEHAVIOR \
+          -e TEMPLATE=$TEMPLATE \
+          automated-tag-creator
