@@ -266,6 +266,10 @@ func CIPushAction() error {
 	if err != nil {
 		return fmt.Errorf("fetch version error: %v", err)
 	}
+	if caption == "" {
+		log.Printf("Old and new versions are equal")
+		return nil
+	}
 
 	if settings.Behavior == behaviorAfter {
 		sha = commit.GetSHA()
