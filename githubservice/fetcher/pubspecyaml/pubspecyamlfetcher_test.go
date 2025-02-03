@@ -54,8 +54,8 @@ version: 1.2.2`, `1.2.2`},
 		{``, ""},
 	}
 	for _, test := range tests {
-		pubspecyaml := &PubspecYaml{}
-		err := unmarshalPubspecYaml([]byte(test.content), pubspecyaml)
+		pubspecyaml := &Yaml{}
+		err := unmarshalYaml([]byte(test.content), pubspecyaml)
 		if err != nil {
 			t.Errorf("Error unmarshal: %v", err)
 			if pubspecyaml.Version != test.version {
@@ -73,8 +73,8 @@ func TestUnmarshalErrorPubspecYaml(t *testing.T) {
 		{`v1.1`, "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `v1.1` into pubspecyaml.PubspecYaml"},
 	}
 	for _, test := range tests {
-		pubspecyaml := &PubspecYaml{}
-		if err := unmarshalPubspecYaml([]byte(test.content), pubspecyaml); fmt.Sprintf("%s", err) != test.err {
+		pubspecyaml := &Yaml{}
+		if err := unmarshalYaml([]byte(test.content), pubspecyaml); fmt.Sprintf("%s", err) != test.err {
 			t.Errorf("Error for content: %s\nexpected err: %v, got err: %v", test.content, test.err, err)
 		}
 	}
@@ -107,9 +107,9 @@ func TestErrorGetVersionPubspecYaml(t *testing.T) {
 func TestPubspecYamlFetcherUnmarshalError(t *testing.T) {
 	f := Fetcher{}
 
-	unmarshalPubspecYamlCopy := unmarshalPubspecYaml
+	unmarshalPubspecYamlCopy := unmarshalYaml
 
-	unmarshalPubspecYaml = failingPubspecYamlFetcherUnmarshal
+	unmarshalYaml = failingPubspecYamlFetcherUnmarshal
 
 	cp := provider.MockContentProvider{}
 
@@ -119,5 +119,5 @@ func TestPubspecYamlFetcherUnmarshalError(t *testing.T) {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, provider.ErrUnmarshal)
 	}
 
-	unmarshalPubspecYaml = unmarshalPubspecYamlCopy
+	unmarshalYaml = unmarshalPubspecYamlCopy
 }
