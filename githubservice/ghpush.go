@@ -105,39 +105,111 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		return
 	}
 
-	var commitComment string
-	caption, err := fetch(settings, ghOldContentProviderPtr, ghNewContentProviderPtr, fullname)
-	if err != nil {
-		log.Printf("fetch version error: %v", err)
-		return
-	}
-	sha := *getShaByBehavior(push, settings.Behavior)
-	objType := "commit"
-	timestamp := time.Now()
+	var commitComment, newVersion, oldVersion string
 
-	tag := &github.Tag{
-		Tag:     &caption,
-		Message: &caption,
-		Tagger: &github.CommitAuthor{
-			Date:  &timestamp,
-			Name:  push.GetPusher().Name,
-			Email: push.GetPusher().Email,
-			Login: push.GetPusher().Login,
-		},
-		Object: &github.GitObject{
-			Type: &objType,
-			SHA:  &sha,
-		},
+	fetchType := detectFetchType(settings.Path)
+
+	if fetchType != "" {
+		var err error
+		var reqError *RequestError
+		fetcher := autoFetchers[fetchType]
+		if fetcher == nil { //not default file
+			if settings.RegexStr == "" {
+				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf(".atc.yaml don't have regexstr for not default package manager file %s.", fetchType))
+				return
+			}
+			fetcher = &customRegexFetcher{}
+		} else {
+			if settings.RegexStr != "" {
+				commitComment += fmt.Sprintf("Used default regexStr in file %s. ", fetchType)
+			}
+		}
+		oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, *settings)
+		if err != nil && !errors.Is(err, errHttpStatusCode) { //ignore http api error
+			log.Printf("get prev version error for %q: %v", fullname, err)
+			if errors.Is(err, errNoVers) || errors.Is(err, errNoGroupInConf) {
+				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version err: %v", fetchType, err))
+			} else {
+				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version not found", fetchType))
+			}
+			return
+		}
+		newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, *settings)
+		if err != nil {
+			if errors.Is(err, errHttpStatusCode) {
+				log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
+			} else if errors.Is(err, errNoVers) || errors.Is(err, errNoGroupInConf) {
+				log.Printf("get version error for %q: %v", fullname, err)
+				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with new version err: %v", fetchType, err))
+			} else {
+				log.Printf("get version error for %q: %v", fullname, err)
+				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with new version not found", fetchType))
+			}
+			return
+		}
+	} else {
+		commitComment = `File .atc.yaml not found or path = "". `
+		fetched := false
+		for defaultPath, fetcher := range autoFetchers {
+			var err error
+			oldVersion, err = fetcher.GetVersionUsingDefaultPath(ghOldContentProviderPtr)
+			if err != nil && !errors.Is(err, errHttpStatusCode) { //ignore http api error
+				log.Printf("get prev version error for %q, default path: %s, err: %v", fullname, defaultPath, err)
+				continue
+			}
+
+			newVersion, err = fetcher.GetVersionUsingDefaultPath(ghNewContentProviderPtr)
+			if err == nil {
+				fetched = true
+				commitComment += "Used default settings. "
+				break
+			} else {
+				log.Printf("autofetcher error for %q: %v", defaultPath, err)
+			}
+		}
+		if !fetched {
+			commitComment += "Not found supported package manager."
+			addComment(client, owner, repo, push.GetAfter(), commitComment)
+			log.Printf("Unable to fetch version using known methods!") //probably should be comment
+			return
+		}
 	}
 
-	if err = addTagToCommit(client, owner, repo, tag); err != nil {
-		log.Printf("addTagToCommit Error for %q: %v", fullname, err)
-		addComment(client, owner, repo, sha, fmt.Sprintf("can't add tag to commit, error : %v", err))
-		return
-	}
+	if newVersion != oldVersion {
+		log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
+		caption, err := renderTagNameTemplate(settings.Template, newVersion)
+		if err != nil {
+			log.Printf("error in go templates: %v", err)
+			return
+		}
+		sha := *getShaByBehavior(push, settings.Behavior)
+		objType := "commit"
+		timestamp := time.Now()
 
-	commitComment += fmt.Sprintf("Added a new version for %q: %q", fullname, caption)
-	addComment(client, owner, repo, sha, commitComment)
+		tag := &github.Tag{
+			Tag:     &caption,
+			Message: &caption,
+			Tagger: &github.CommitAuthor{
+				Date:  &timestamp,
+				Name:  push.GetPusher().Name,
+				Email: push.GetPusher().Email,
+				Login: push.GetPusher().Login,
+			},
+			Object: &github.GitObject{
+				Type: &objType,
+				SHA:  &sha,
+			},
+		}
+
+		if err := addTagToCommit(client, owner, repo, tag); err != nil {
+			log.Printf("addTagToCommit Error for %q: %v", fullname, err)
+			addComment(client, owner, repo, sha, fmt.Sprintf("can't add tag to commit, error : %v", err))
+			return
+		}
+
+		commitComment += fmt.Sprintf("Added a new version for %q: %q", fullname, caption)
+		addComment(client, owner, repo, sha, commitComment)
+	}
 }
 
 func CIPushAction() error {
@@ -244,6 +316,7 @@ func fetch(settings *AtcSettings, ghOldContentProviderPtr,
 		if err != nil && !errors.Is(err, errHttpStatusCode) { //ignore http api error
 			return "", fmt.Errorf("get prev version error for %q: %w", fullname, err)
 		}
+
 		log.Printf("old version %s", oldVersion)
 		newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, *settings)
 		if err != nil {
@@ -264,9 +337,10 @@ func fetch(settings *AtcSettings, ghOldContentProviderPtr,
 				fetched = true
 				break
 			} else {
-				log.Printf("autofetcher error for %q: %v", defaultPath, err)
+				return "", fmt.Errorf("autofetcher error for %q: %w", defaultPath, err)
 			}
 		}
+
 		if !fetched {
 			return "", fmt.Errorf("unable to fetch version using known methods")
 		}
@@ -276,7 +350,6 @@ func fetch(settings *AtcSettings, ghOldContentProviderPtr,
 		log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
 		caption, err := renderTagNameTemplate(settings.Template, newVersion)
 		if err != nil {
-			log.Printf("error in go templates: %v", err)
 			return "", fmt.Errorf("error in go templates: %v", err)
 		}
 		return caption, nil
