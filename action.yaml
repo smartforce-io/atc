@@ -29,6 +29,22 @@ runs:
   using: 'composite'
   steps:
 
+    - name: Check OS
+      shell: bash
+      run: |
+        if [[ "${{ runner.os }}" != "Linux" ]]; then
+          echo "::error::This action can only be run on Linux"
+          exit 1
+        fi
+
+    - name: Check type file
+      shell: bash
+      run: |
+        if [[ ! -f "${{ inputs.type }}" ]]; then
+          echo "::error::Config file not found: ${{ inputs.type }}"
+        fi
+        echo "Config file found: ${{ inputs.type }}"
+
     - name: Build and Run Docker Container
       shell: bash
       env:
