@@ -19,6 +19,11 @@ inputs:
     description: 'The default template is "v{{.Version}}'
     required: false
     default: v{{.Version}}
+  regex:
+    description: 'Create regex string if you are not using the default ATC package manager. 
+    The regexstr must contain one group with version number.'
+    required: false
+    default: 'version: (.+)'
 
 runs:
   using: 'docker'
@@ -30,4 +35,5 @@ runs:
     GITHUB_REPOSITORY: ${{ github.repository }}
     BEHAVIOR: ${{ inputs.behavior }}
     TEMPLATE: ${{ inputs.template }}
+    REGEX: ${{ inputs.regex }}
 

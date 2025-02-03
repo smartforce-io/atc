@@ -221,6 +221,7 @@ func CIPushAction() error {
 		Path:     os.Getenv("FILE_TYPE"),
 		Behavior: os.Getenv("BEHAVIOR"),
 		Template: os.Getenv("TEMPLATE"),
+		RegexStr: os.Getenv("REGEX"),
 	}
 
 	ctx := context.Background()
@@ -313,6 +314,9 @@ func fetch(settings *AtcSettings, ghOldContentProviderPtr,
 		fetcher := autoFetchers[fetchType]
 		if fetcher == nil {
 			log.Printf("using custom fetcher")
+			if settings.RegexStr == "" {
+				return "", fmt.Errorf("don't have regexstr for not default package manager file %s", fetchType)
+			}
 			fetcher = &customRegexFetcher{}
 		}
 
