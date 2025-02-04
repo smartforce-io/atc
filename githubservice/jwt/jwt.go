@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/smartforce-io/atc/envvars"
+	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/smartforce-io/atc/envvars"
 )
 
 var (
