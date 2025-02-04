@@ -1,9 +1,14 @@
-package githubservice
+package pomxml
 
 import (
 	"errors"
 	"fmt"
 	"testing"
+
+	"github.com/smartforce-io/atc/githubservice/provider"
+
+	"github.com/smartforce-io/atc/githubservice/fetcher"
+	"github.com/smartforce-io/atc/githubservice/settings"
 )
 
 var basicPomXml = `
@@ -13,15 +18,15 @@ var basicPomXml = `
 </project>
 `
 var failingPomXmlFetcherUnmarshal = func(content []byte, pomXmlPtr *PomXml) error {
-	return errUnmarshal
+	return provider.ErrUnmarshal
 }
 
 func TestPomXmlFetcherBasic(t *testing.T) {
-	fetcher := pomXmlFetcher{}
+	f := Fetcher{}
 
-	cp := mockContentProvider{basicPomXml, nil}
+	cp := provider.MockContentProvider{Content: basicPomXml}
 
-	vers, err := fetcher.GetVersion(&cp, AtcSettings{Path: "pom.xml"})
+	vers, err := f.GetVersion(&cp, settings.AtcSettings{Path: "pom.xml"})
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -76,55 +81,55 @@ func TestUnmarshalErrorPomXml(t *testing.T) {
 }
 
 func TestPomXmlFetcherGeneralError(t *testing.T) {
-	fetcher := pomXmlFetcher{}
+	f := Fetcher{}
 
-	cp := mockContentProvider{content: "", err: errGeneral}
+	cp := provider.MockContentProvider{Content: "", Err: provider.ErrGeneral}
 
-	_, err := fetcher.GetVersion(&cp, AtcSettings{Path: "pom.xml"})
+	_, err := f.GetVersion(&cp, settings.AtcSettings{Path: "pom.xml"})
 
-	if err != errGeneral {
-		t.Errorf("Invalid error, Got %v, wanted %v", err, errGeneral)
+	if !errors.Is(err, provider.ErrGeneral) {
+		t.Errorf("Invalid error, Got %v, wanted %v", err, provider.ErrGeneral)
 	}
 }
 
 func TestErrorGetVersionPomXml(t *testing.T) {
 	noContentErr := errors.New("can't get content")
-	cp := mockContentProvider{"", noContentErr}
-	pxf := &pomXmlFetcher{}
+	cp := provider.MockContentProvider{Err: noContentErr}
+	pxf := &Fetcher{}
 	//test error get contents
-	_, err := pxf.GetVersion(&cp, AtcSettings{Path: "Maven"})
-	if err != noContentErr {
+	_, err := pxf.GetVersion(&cp, settings.AtcSettings{Path: "Maven"})
+	if !errors.Is(err, noContentErr) {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error get contents when use DefaultPath
 	_, err = pxf.GetVersionUsingDefaultPath(&cp)
-	if err != noContentErr {
+	if !errors.Is(err, noContentErr) {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error can't search verion
-	cp.content = `<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	cp.Content = `<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	</project>`
-	cp.err = nil
-	_, err = pxf.GetVersion(&cp, AtcSettings{Path: "Maven"})
-	if err != errNoVers {
-		t.Errorf("err:%s  !=  noVersErr:%s", err, errNoVers)
+	cp.Err = nil
+	_, err = pxf.GetVersion(&cp, settings.AtcSettings{Path: "Maven"})
+	if !errors.Is(err, fetcher.ErrNoVers) {
+		t.Errorf("err:%s  !=  noVersErr:%s", err, fetcher.ErrNoVers)
 	}
 }
 
 func TestPomXmlFetcherUnmarshalError(t *testing.T) {
-	fetcher := pomXmlFetcher{}
+	f := Fetcher{}
 
 	unmarshalPomXmlCopy := unmarshalPomXml
 
 	unmarshalPomXml = failingPomXmlFetcherUnmarshal
 
-	cp := mockContentProvider{basicPomXml, nil}
+	cp := provider.MockContentProvider{Content: basicPomXml}
 
-	_, err := fetcher.GetVersion(&cp, AtcSettings{Path: "pom.xml"})
+	_, err := f.GetVersion(&cp, settings.AtcSettings{Path: "pom.xml"})
 
-	if err != errUnmarshal {
-		t.Errorf("Invalid error, Got %v, wanted %v", err, errUnmarshal)
+	if !errors.Is(err, provider.ErrUnmarshal) {
+		t.Errorf("Invalid error, Got %v, wanted %v", err, provider.ErrUnmarshal)
 	}
 
 	unmarshalPomXml = unmarshalPomXmlCopy

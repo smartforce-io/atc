@@ -26,4 +26,4 @@ jobs:
       run: go test -coverprofile=tests_cover.html -v ./apiserver
 
     - name: TestsGitHubService
-      run: go test -coverprofile=tests_cover.html -v ./githubservice
+      run: go test -coverprofile=tests_cover.html -v ./githubservice/...
