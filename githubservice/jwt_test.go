@@ -8,7 +8,7 @@ import (
 
 	"github.com/smartforce-io/atc/envvars"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt/v5"
 )
 
 const (
