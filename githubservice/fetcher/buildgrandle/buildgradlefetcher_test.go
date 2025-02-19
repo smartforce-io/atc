@@ -1,9 +1,12 @@
-package githubservice
+package buildgrandle
 
 import (
 	"errors"
 	"fmt"
 	"testing"
+
+	"github.com/smartforce-io/atc/githubservice/provider"
+	"github.com/smartforce-io/atc/githubservice/settings"
 )
 
 var basicBuildGradle = `
@@ -19,11 +22,11 @@ android {
 `
 
 func TestBuildGradleFetcherBasic(t *testing.T) {
-	fetcher := buildGradleFetcher{}
+	fetcher := Fetcher{}
 
-	cp := mockContentProvider{basicBuildGradle, nil}
+	cp := provider.MockContentProvider{Content: basicBuildGradle}
 
-	vers, err := fetcher.GetVersion(&cp, AtcSettings{Path: "build.gradle"})
+	vers, err := fetcher.GetVersion(&cp, settings.AtcSettings{Path: "build.gradle"})
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -119,10 +122,10 @@ func TestUnmarshalErrorBuildGradle(t *testing.T) {
 
 func TestErrorGetVersionGradle(t *testing.T) {
 	noContentErr := errors.New("can't get content")
-	cp := mockContentProvider{"", noContentErr}
-	bgf := &buildGradleFetcher{}
+	cp := provider.MockContentProvider{"", noContentErr}
+	bgf := &Fetcher{}
 	//test error get contents
-	_, err := bgf.GetVersion(&cp, AtcSettings{Path: "gradle"})
+	_, err := bgf.GetVersion(&cp, settings.AtcSettings{Path: "gradle"})
 	if err != noContentErr {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
