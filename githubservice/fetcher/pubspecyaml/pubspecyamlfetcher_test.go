@@ -1,9 +1,14 @@
-package githubservice
+package pubspecyaml
 
 import (
 	"errors"
 	"fmt"
 	"testing"
+
+	"github.com/smartforce-io/atc/githubservice/provider"
+
+	"github.com/smartforce-io/atc/githubservice/fetcher"
+	"github.com/smartforce-io/atc/githubservice/settings"
 )
 
 var basicPubspecYaml = `
@@ -13,15 +18,15 @@ description: >-
 `
 
 var failingPubspecYamlFetcherUnmarshal = func(content []byte, pubspecyaml *PubspecYaml) error {
-	return errUnmarshal
+	return provider.ErrUnmarshal
 }
 
 func TestPubspecYamlFetcherBasic(t *testing.T) {
-	fetcher := pubspecyamlFetcher{}
+	f := Fetcher{}
 
-	cp := mockContentProvider{basicPubspecYaml, nil}
+	cp := provider.MockContentProvider{Content: basicPubspecYaml}
 
-	vers, err := fetcher.GetVersion(&cp, AtcSettings{Path: "pubspec.yaml"})
+	vers, err := f.GetVersion(&cp, settings.AtcSettings{Path: "pubspec.yaml"})
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -65,7 +70,7 @@ func TestUnmarshalErrorPubspecYaml(t *testing.T) {
 		content string
 		err     string
 	}{
-		{`v1.1`, "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `v1.1` into githubservice.PubspecYaml"},
+		{`v1.1`, "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `v1.1` into pubspecyaml.PubspecYaml"},
 	}
 	for _, test := range tests {
 		pubspecyaml := &PubspecYaml{}
@@ -77,41 +82,41 @@ func TestUnmarshalErrorPubspecYaml(t *testing.T) {
 
 func TestErrorGetVersionPubspecYaml(t *testing.T) {
 	noContentErr := errors.New("can't get content")
-	cp := mockContentProvider{"", noContentErr}
-	psf := &pubspecyamlFetcher{}
+	cp := provider.MockContentProvider{Err: noContentErr}
+	psf := &Fetcher{}
 	//test error get contents
-	_, err := psf.GetVersion(&cp, AtcSettings{Path: "Flutter"})
-	if err != noContentErr {
+	_, err := psf.GetVersion(&cp, settings.AtcSettings{Path: "Flutter"})
+	if !errors.Is(err, noContentErr) {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error get contents when use DefaultPath
 	_, err = psf.GetVersionUsingDefaultPath(&cp)
-	if err != noContentErr {
+	if !errors.Is(err, noContentErr) {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error can't search verion
-	cp.content = `name: atc`
-	cp.err = nil
-	_, err = psf.GetVersion(&cp, AtcSettings{Path: "Flutter"})
-	if err != errNoVers {
-		t.Errorf("err:%s  !=  noVersErr:%s", err, errNoVers)
+	cp.Content = `name: atc`
+	cp.Err = nil
+	_, err = psf.GetVersion(&cp, settings.AtcSettings{Path: "Flutter"})
+	if !errors.Is(err, fetcher.ErrNoVers) {
+		t.Errorf("err:%s  !=  noVersErr:%s", err, fetcher.ErrNoVers)
 	}
 
 }
 
 func TestPubspecYamlFetcherUnmarshalError(t *testing.T) {
-	fetcher := pubspecyamlFetcher{}
+	f := Fetcher{}
 
 	unmarshalPubspecYamlCopy := unmarshalPubspecYaml
 
 	unmarshalPubspecYaml = failingPubspecYamlFetcherUnmarshal
 
-	cp := mockContentProvider{"", nil}
+	cp := provider.MockContentProvider{}
 
-	_, err := fetcher.GetVersion(&cp, AtcSettings{Path: "pubspec.yaml"})
+	_, err := f.GetVersion(&cp, settings.AtcSettings{Path: "pubspec.yaml"})
 
-	if err != errUnmarshal {
-		t.Errorf("Invalid error, Got %v, wanted %v", err, errUnmarshal)
+	if !errors.Is(err, provider.ErrUnmarshal) {
+		t.Errorf("Invalid error, Got %v, wanted %v", err, provider.ErrUnmarshal)
 	}
 
 	unmarshalPubspecYaml = unmarshalPubspecYamlCopy

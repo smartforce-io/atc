@@ -1,15 +1,20 @@
-package githubservice
+package buildgrandle
 
 import (
 	"log"
 	"regexp"
+
+	"github.com/smartforce-io/atc/githubservice/provider"
+	"github.com/smartforce-io/atc/githubservice/settings"
+
+	"github.com/smartforce-io/atc/githubservice/fetcher"
 )
 
 type BuildGradle struct {
 	Version string `gradle:"version"`
 }
 
-type buildGradleFetcher struct {
+type Fetcher struct {
 }
 
 var unmarshalBuildGradle = func(content []byte, buildGradlePtr *BuildGradle) error {
@@ -20,14 +25,14 @@ var unmarshalBuildGradle = func(content []byte, buildGradlePtr *BuildGradle) err
 	}
 	res := regex.FindStringSubmatch(string(content))
 	if len(res) < 2 {
-		return errNoVers
+		return fetcher.ErrNoVers
 	}
 	buildGradlePtr.Version = res[2]
 	return nil
 }
 
-func (buildGradleFetcher *buildGradleFetcher) GetVersion(ghContentProvider contentProvider, settings AtcSettings) (string, error) {
-	content, err := ghContentProvider.getContents(settings.Path)
+func (buildGradleFetcher *Fetcher) GetVersion(ghContentProvider provider.ContentProvider, settings settings.AtcSettings) (string, error) {
+	content, err := ghContentProvider.GetContents(settings.Path)
 	if err != nil {
 		return "", err
 	}
@@ -38,6 +43,6 @@ func (buildGradleFetcher *buildGradleFetcher) GetVersion(ghContentProvider conte
 	return gradle.Version, nil
 }
 
-func (buildGradleFetcher *buildGradleFetcher) GetVersionUsingDefaultPath(ghContentProvider contentProvider) (string, error) {
-	return buildGradleFetcher.GetVersion(ghContentProvider, AtcSettings{Path: "app/build.gradle"})
+func (buildGradleFetcher *Fetcher) GetVersionUsingDefaultPath(ghContentProvider provider.ContentProvider) (string, error) {
+	return buildGradleFetcher.GetVersion(ghContentProvider, settings.AtcSettings{Path: "app/build.gradle"})
 }
