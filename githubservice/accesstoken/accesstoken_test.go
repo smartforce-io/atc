@@ -1,17 +1,17 @@
-package githubservice
+package accesstoken
 
 import (
-	"crypto/x509"
-	"encoding/pem"
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/smartforce-io/atc/envvars"
-
-	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/smartforce-io/atc/githubservice/provider"
 )
 
 const (
+	expected = "aaa"
+
 	testRsaKey = `
 -----BEGIN RSA PRIVATE KEY-----
 MIIG4gIBAAKCAYEAvhsrrcgTU1DvozfO9xrF5TWA9D94sFe4VviIDUkdVhSIMSDY
@@ -53,57 +53,59 @@ JuqL83zirifWygpWafSpq7ibTPqUX0knmxmtXJ0CUXWd3x+I85XVuKgbdNmPfJMe
 2NR3QfkITFX3vHqqjpbg0wuJumTrDqwqvdftG/w7M0wtGEwGqMk=
 -----END RSA PRIVATE KEY-----
 `
-	testPublicRsaKey = `
------BEGIN RSA PUBLIC KEY-----
-MIIBigKCAYEAvhsrrcgTU1DvozfO9xrF5TWA9D94sFe4VviIDUkdVhSIMSDYQIEF
-XbT4N7IHPgrbVjdwgHHRGKF2PBy/pAnVYx5kLazZqjhFXmg7S8pTQt9OSmp+KdHW
-VdQoNnQ215ja1jsCVGeVJ1y3YUHZoPHffbwRcW4pNQLWo329zfqtfoYcTxdH1OYB
-XyGeHDRnMRoxoMJMwqRCjfbjLcQ/bcWBotte/2BpCpL3Psd/ryHQ+G5pD1JdvdJk
-c2mcLRrKVeNeeIvo0WlTqYdUmbfvNy/TbsiIW38SVVj3HMOWjvk4D5Hs402Dyvcj
-aZ60U+zBYPTLYAAwCI+8qbb3kQJJPzM3bga25vSmV8WR77HfFazLY/Agfpm7vnod
-EQpehnno/OFbubPQntMrf9hNgMavJETJWXCM8imfeE7f4/Gtb/mEGO0o0Cu9EMXn
-696pCNRWwcdJDahEEuuZevSRDua7HC8hSFex6IXRtCxNi5f7c71HHhjMD2AnWqMn
-SVTNuYebdT0XAgMBAAE=
------END RSA PUBLIC KEY-----
-`
-	expectedIss = "17"
 )
 
-func TestJwtBasic(t *testing.T) {
-	os.Setenv(envvars.AppId, expectedIss)
+func TestGetAccessTokenBasic(t *testing.T) {
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
+	envvarsPemDataOld := envvars.PemData
+	os.Setenv(envvars.PemData, testRsaKey)
+	defer os.Setenv(envvars.PemData, envvarsPemDataOld)
 
-	tokenStr, err := getJwt([]byte(testRsaKey))
+	token, err := GetAccessToken(10, mockClientProviderPtr)
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 		return
 	}
-	block, _ := pem.Decode([]byte(testPublicRsaKey))
-
-	if block == nil {
-		t.Errorf("Unable to decode pem")
-		return
+	if token != expected {
+		t.Errorf("Unexpected token, expected %s, got %s", expected, token)
 	}
+}
 
-	pubkey, err := x509.ParsePKCS1PublicKey([]byte(block.Bytes))
+func TestErrorGetPemFromPemPathVariable(t *testing.T) {
+	mockClientProviderPtr := provider.DefaultMockClientProvider()
+	envvarsPemDataOld := envvars.PemData
+	envvarsPemPathOld := envvars.PemPathVariable
+	os.Setenv(envvars.PemData, "")
+	defer os.Setenv(envvars.PemData, envvarsPemDataOld)
+	defer os.Setenv(envvars.PemPathVariable, envvarsPemPathOld)
 
+	//create atcTestEmpty.pem for test
+	file, err := os.Create("atcTestEmpty.pem")
 	if err != nil {
-		t.Errorf("Unable to get public key: %v", err)
-		return
+		t.Error(err)
 	}
+	file.Close()
 
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-		return pubkey, nil
-	})
+	var tests = []struct {
+		envvarsPem  string
+		expectedErr string
+	}{
+		{"", "path to .pem is empty"},
+		{"atcTest.pem", "open atcTest.pem: no such file or directory"},
+		{"atcTestEmpty.pem", "no .pem file"},
+	}
+	for _, test := range tests {
+		os.Setenv(envvars.PemPathVariable, test.envvarsPem)
+		_, err := GetAccessToken(10, mockClientProviderPtr)
 
+		if fmt.Sprint(err) != test.expectedErr {
+			t.Errorf("No get err with PemPathVariable = \"%s\"\nexpectedErr: \"%v\", got: \"%v\"", test.envvarsPem, test.expectedErr, err)
+		}
+	}
+	//del atcTestEmpty.pem for this test
+	err = os.Remove("atcTestEmpty.pem")
 	if err != nil {
-		t.Errorf("Parse token error: %v", err)
-		return
-	}
-	t.Log(tokenStr)
-	claims := token.Claims.(jwt.MapClaims)
-
-	if claims["iss"] != expectedIss {
-		t.Errorf("Invalid iss claim! expected: %s, received: %s\n ", expectedIss, claims["iss"])
+		t.Error(err)
 	}
 }
