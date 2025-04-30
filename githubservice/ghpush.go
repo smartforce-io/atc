@@ -3,14 +3,17 @@ package githubservice
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
 
 	"github.com/google/go-github/v39/github"
+	"golang.org/x/oauth2"
 )
 
 type TagContent struct {
@@ -102,9 +105,8 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		return
 	}
 
-	commitComment := ""
-	newVersion := ""
-	oldVersion := ""
+	var commitComment, newVersion, oldVersion string
+
 	fetchType := detectFetchType(settings.Path)
 
 	if fetchType != "" {
@@ -123,9 +125,9 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 			}
 		}
 		oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, *settings)
-		if err != nil && err != errHttpStatusCode { //ignore http api error
+		if err != nil && !errors.Is(err, errHttpStatusCode) { //ignore http api error
 			log.Printf("get prev version error for %q: %v", fullname, err)
-			if err == errNoVers || err == errNoGroupInConf {
+			if errors.Is(err, errNoVers) || errors.Is(err, errNoGroupInConf) {
 				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version err: %v", fetchType, err))
 			} else {
 				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with old version not found", fetchType))
@@ -134,9 +136,9 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		}
 		newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, *settings)
 		if err != nil {
-			if err == errHttpStatusCode {
+			if errors.Is(err, errHttpStatusCode) {
 				log.Printf("Wrong access status during getContent for installation %d for %q: %d", id, fullname, reqError.StatusCode)
-			} else if err == errNoVers || err == errNoGroupInConf {
+			} else if errors.Is(err, errNoVers) || errors.Is(err, errNoGroupInConf) {
 				log.Printf("get version error for %q: %v", fullname, err)
 				addComment(client, owner, repo, push.GetAfter(), fmt.Sprintf("file %s with new version err: %v", fetchType, err))
 			} else {
@@ -151,7 +153,7 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		for defaultPath, fetcher := range autoFetchers {
 			var err error
 			oldVersion, err = fetcher.GetVersionUsingDefaultPath(ghOldContentProviderPtr)
-			if err != nil && err != errHttpStatusCode { //ignore http api error
+			if err != nil && !errors.Is(err, errHttpStatusCode) { //ignore http api error
 				log.Printf("get prev version error for %q, default path: %s, err: %v", fullname, defaultPath, err)
 				continue
 			}
@@ -208,4 +210,158 @@ func PushAction(push *github.WebHookPayload, clientProvider ClientProvider) {
 		commitComment += fmt.Sprintf("Added a new version for %q: %q", fullname, caption)
 		addComment(client, owner, repo, sha, commitComment)
 	}
+}
+
+func CIPushAction() error {
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	fullname := os.Getenv("GITHUB_REPOSITORY")
+	commitSHA := os.Getenv("COMMIT_SHA")
+
+	settings := &AtcSettings{
+		Path:     os.Getenv("FILE_TYPE"),
+		Behavior: os.Getenv("BEHAVIOR"),
+		Template: os.Getenv("TEMPLATE"),
+		RegexStr: os.Getenv("REGEX"),
+	}
+
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: githubToken},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+
+	s := strings.Split(fullname, "/")
+	owner := s[0]
+	repo := s[1]
+
+	commit, _, err := client.Repositories.GetCommit(ctx, owner, repo, commitSHA, nil)
+	if err != nil {
+		return fmt.Errorf("error getting commit %s %v", commitSHA, err)
+	}
+
+	parents := commit.Parents
+	if len(parents) == 0 {
+		log.Printf("this branch has no older commits")
+		return nil
+	}
+
+	ghOldContentProviderPtr := &ghContentProvider{
+		owner:    owner,
+		repo:     repo,
+		ref:      parents[0].GetSHA(),
+		ctx:      ctx,
+		ghClient: client,
+	}
+	ghNewContentProviderPtr := &ghContentProvider{
+		owner:    owner,
+		repo:     repo,
+		ref:      commitSHA,
+		ctx:      ctx,
+		ghClient: client,
+	}
+
+	var sha string
+
+	caption, err := fetch(settings, ghOldContentProviderPtr, ghNewContentProviderPtr, fullname)
+	if err != nil {
+		return fmt.Errorf("fetch version error: %v", err)
+	}
+	if caption == "" {
+		log.Printf("Old and new versions are equal")
+		return nil
+	}
+
+	if settings.Behavior == behaviorAfter {
+		sha = commit.GetSHA()
+	} else {
+		sha = parents[0].GetSHA()
+	}
+
+	objType := "commit"
+	timestamp := time.Now()
+
+	tag := &github.Tag{
+		Tag:     &caption,
+		Message: &caption,
+		Tagger: &github.CommitAuthor{
+			Date:  &timestamp,
+			Name:  commit.Commit.Author.Name,
+			Email: commit.Commit.Author.Email,
+			Login: commit.Commit.Author.Login,
+		},
+		Object: &github.GitObject{
+			Type: &objType,
+			SHA:  &sha,
+		},
+	}
+
+	if err = addTagToCommit(client, owner, repo, tag); err != nil {
+		return fmt.Errorf("error when adding tag to commit %q: %v", fullname, err)
+	}
+
+	log.Printf("Added a new version for %q: %q", fullname, caption)
+	return nil
+}
+
+func fetch(settings *AtcSettings, ghOldContentProviderPtr,
+	ghNewContentProviderPtr contentProvider, fullname string) (string, error) {
+	fetchType := detectFetchType(settings.Path)
+	var newVersion string
+	var oldVersion string
+	if fetchType != "" {
+		var err error
+		fetcher := autoFetchers[fetchType]
+		if fetcher == nil {
+			log.Printf("using custom fetcher")
+			if settings.RegexStr == "" {
+				return "", fmt.Errorf("don't have regexstr for not default package manager file %s", fetchType)
+			}
+			fetcher = &customRegexFetcher{}
+		}
+
+		oldVersion, err = fetcher.GetVersion(ghOldContentProviderPtr, *settings)
+		if err != nil && !errors.Is(err, errHttpStatusCode) { //ignore http api error
+			return "", fmt.Errorf("get prev version error for %q: %w", fullname, err)
+		}
+
+		log.Printf("old version %s", oldVersion)
+		newVersion, err = fetcher.GetVersion(ghNewContentProviderPtr, *settings)
+		if err != nil {
+			return "", fmt.Errorf("get new version error for %q: %w", fullname, err)
+		}
+	} else {
+		fetched := false
+		for defaultPath, fetcher := range autoFetchers {
+			var err error
+			oldVersion, err = fetcher.GetVersionUsingDefaultPath(ghOldContentProviderPtr)
+			if err != nil && !errors.Is(err, errHttpStatusCode) { //ignore http api error
+				log.Printf("get prev version error for %q, default path: %s, err: %v", fullname, defaultPath, err)
+				continue
+			}
+
+			newVersion, err = fetcher.GetVersionUsingDefaultPath(ghNewContentProviderPtr)
+			if err == nil {
+				fetched = true
+				break
+			} else {
+				return "", fmt.Errorf("autofetcher error for %q: %w", defaultPath, err)
+			}
+		}
+
+		if !fetched {
+			return "", fmt.Errorf("unable to fetch version using known methods")
+		}
+	}
+
+	if newVersion != oldVersion {
+		log.Printf("There is a new version for %q! Old version: %q, new version: %q", fullname, oldVersion, newVersion)
+		caption, err := renderTagNameTemplate(settings.Template, newVersion)
+		if err != nil {
+			return "", fmt.Errorf("error in go templates: %v", err)
+		}
+		return caption, nil
+	}
+
+	return "", nil
 }

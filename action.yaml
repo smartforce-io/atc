@@ -1,0 +1,67 @@
+name: 'Automated Tag Creator '
+description: 'Track version changes in local files for automatic tag creation'
+author: 'smartforce-io'
+
+inputs:
+  type:
+    description: 'File to track version of the app'
+    required: true
+  secrets:
+    description: 'Token to access repository'
+    required: true
+  behavior:
+    description: 'ATC can create tag for current commit.
+    Use after for this, or previous commit, use before for this.
+    The default behavior is after'
+    required: false
+    default: after
+  template:
+    description: 'The default template is "v{{.Version}}'
+    required: false
+    default: v{{.Version}}
+  regex:
+    description: 'Create regex string if you are not using the default ATC package manager. 
+    The regexstr must contain one group with version number.'
+    required: false
+    default: 'version: (.+)'
+
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Check OS
+      shell: bash
+      run: |
+        if [[ "${{ runner.os }}" != "Linux" ]]; then
+          echo "::error::This action can only be run on Linux"
+          exit 1
+        fi
+
+    - name: Check type file
+      shell: bash
+      run: |
+        if [[ ! -f "${{ inputs.type }}" ]]; then
+          echo "::error::Config file not found: ${{ inputs.type }}"
+        fi
+        echo "Config file found: ${{ inputs.type }}"
+
+    - name: Build and Run Docker Container
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.secrets }}
+        FILE_TYPE: ${{ inputs.type }}
+        COMMIT_SHA: ${{ github.sha }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        BEHAVIOR: ${{ inputs.behavior }}
+        TEMPLATE: ${{ inputs.template }}
+        REGEX: ${{ inputs.regex }}
+      run: |
+        docker build -t automated-tag-creator .
+        docker run --rm \
+          -e GITHUB_TOKEN=$GITHUB_TOKEN \
+          -e FILE_TYPE=$FILE_TYPE \
+          -e COMMIT_SHA=$COMMIT_SHA \
+          -e GITHUB_REPOSITORY=$GITHUB_REPOSITORY \
+          -e BEHAVIOR=$BEHAVIOR \
+          -e TEMPLATE=$TEMPLATE \
+          automated-tag-creator
