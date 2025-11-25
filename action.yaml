@@ -64,4 +64,5 @@ runs:
           -e GITHUB_REPOSITORY=$GITHUB_REPOSITORY \
           -e BEHAVIOR=$BEHAVIOR \
           -e TEMPLATE=$TEMPLATE \
+          -e REGEX=$REGEX \
           automated-tag-creator
