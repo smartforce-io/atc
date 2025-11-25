@@ -10,9 +10,9 @@ inputs:
     description: 'Token to access repository'
     required: true
   behavior:
-    description: 'ATC can create tag for current commit.
-    Use after for this, or previous commit, use before for this.
-    The default behavior is after'
+    description: 'Determines which commit to read the version from.
+  Use "after" (default) to read version from the current commit,
+  or "before" to read version from the previous commit'
     required: false
     default: after
   template:
