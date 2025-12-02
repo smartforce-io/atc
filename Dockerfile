@@ -7,23 +7,24 @@ RUN go build -o ../atc/bin/atcapp
 
 FROM alpine
 
-RUN mkdir /atc
-COPY --from=gobuilder /atc/bin/atcapp /atc/
-WORKDIR /atc
+ARG GH_PEM_DATA
+
+EXPOSE 8080
+
+RUN mkdir /server
+COPY --from=gobuilder /atc/bin/atcapp /server/
+WORKDIR /server
 
 RUN chmod +x atcapp
 RUN adduser -D -g '' atcuser
-RUN chown -R atcuser:atcuser /atc
+RUN chown -R atcuser:atcuser /server
+
+RUN mkdir /assets
 
 USER atcuser
 
-ENV GITHUB_TOKEN=$GITHUB_TOKEN
-ENV FILE_TYPE=$FILE_TYPE
-ENV COMMIT_SHA=$COMMIT_SHA
-ENV GITHUB_REPOSITORY=$GITHUB_REPOSITORY
-ENV BEHAVIOR = $BEHAVIOR
-ENV TEMPLATE = $TEMPLATE
-ENV REGEX = $REGEX
-ENV CI_MODE = 'true'
+ENV ATC_PEM_PATH=/assets/github.pem
+ENV ATC_APP_ID=79517
+ENV ATC_PEM_DATA=${GH_PEM_DATA}
 
-ENTRYPOINT ["/atc/atcapp"]
+ENTRYPOINT ["/server/atcapp"]

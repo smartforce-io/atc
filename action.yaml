@@ -28,7 +28,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-
     - name: Check OS
       shell: bash
       run: |
@@ -45,7 +44,13 @@ runs:
         fi
         echo "Config file found: ${{ inputs.type }}"
 
-    - name: Build and Run Docker Container
+    - name: Build Automated Tag Creator
+      shell: bash
+      run: |
+        go build -o atc ./
+        chmod +x atc
+
+    - name: Run Automated Tag Creator
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.secrets }}
@@ -55,14 +60,6 @@ runs:
         BEHAVIOR: ${{ inputs.behavior }}
         TEMPLATE: ${{ inputs.template }}
         REGEX: ${{ inputs.regex }}
+        CI_MODE: true
       run: |
-        docker build -t automated-tag-creator .
-        docker run --rm \
-          -e GITHUB_TOKEN=$GITHUB_TOKEN \
-          -e FILE_TYPE=$FILE_TYPE \
-          -e COMMIT_SHA=$COMMIT_SHA \
-          -e GITHUB_REPOSITORY=$GITHUB_REPOSITORY \
-          -e BEHAVIOR=$BEHAVIOR \
-          -e TEMPLATE=$TEMPLATE \
-          -e REGEX=$REGEX \
-          automated-tag-creator
+        ./atc
