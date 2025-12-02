@@ -24,7 +24,7 @@ import (
 
 	"github.com/google/go-github/v39/github"
 
-	"github.com/smartforce-io/atc/githubservice/fetcher/buildgrandle"
+	"github.com/smartforce-io/atc/githubservice/fetcher/buildgradle"
 	"github.com/smartforce-io/atc/githubservice/fetcher/pomxml"
 )
 
@@ -34,7 +34,7 @@ type TagContent struct {
 
 var autoFetchers = map[string]fetcher.VersionFetcher{
 	"pom.xml":      &pomxml.Fetcher{},
-	"build.gradle": &buildgrandle.Fetcher{},
+	"build.gradle": &buildgradle.Fetcher{},
 	"package.json": &packagejson.Fetcher{},
 	"pubspec.yaml": &pubspecyaml.Fetcher{},
 }
