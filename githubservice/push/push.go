@@ -15,7 +15,8 @@ import (
 	"github.com/smartforce-io/atc/githubservice/fetcher"
 	"github.com/smartforce-io/atc/githubservice/fetcher/customregex"
 	"github.com/smartforce-io/atc/githubservice/fetcher/packagejson"
-	"github.com/smartforce-io/atc/githubservice/fetcher/pubspecyaml"
+	"github.com/smartforce-io/atc/githubservice/fetcher/yaml/pluginyaml"
+	"github.com/smartforce-io/atc/githubservice/fetcher/yaml/pubspecyaml"
 	"github.com/smartforce-io/atc/githubservice/gitutil"
 	"github.com/smartforce-io/atc/githubservice/provider"
 	"github.com/smartforce-io/atc/githubservice/settings"
@@ -35,6 +36,7 @@ var autoFetchers = map[string]fetcher.VersionFetcher{
 	"build.gradle": &buildgrandle.Fetcher{},
 	"package.json": &packagejson.Fetcher{},
 	"pubspec.yaml": &pubspecyaml.Fetcher{},
+	"plugin.yaml":  &pluginyaml.Fetcher{},
 }
 
 func detectFetchType(path string) string {
