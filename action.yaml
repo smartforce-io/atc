@@ -51,7 +51,7 @@ runs:
 
     - name: Build Automated Tag Creator
       shell: bash
-      run: go build -o "${{ github.action_path }}/atc" ./
+      run: go build -C "${{ github.action_path }}" -o atc
 
     - name: Run Automated Tag Creator
       shell: bash
