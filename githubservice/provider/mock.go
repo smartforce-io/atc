@@ -1,4 +1,4 @@
-package githubservice
+package provider
 
 import (
 	"bytes"
@@ -17,6 +17,12 @@ import (
 )
 
 const (
+	tokenResponse = `
+{
+	"token" : "aaa",
+	"expires_at": "2016-07-11T22:14:10Z"
+}
+`
 	oldPomXml = `
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -73,24 +79,24 @@ vers: 5
 `
 )
 
-func mockContentResponse(content string) string {
-	response := fmt.Sprintf(`{"content" : "%s", "size": %d, "encoding":"base64"}`, base64.StdEncoding.EncodeToString([]byte(content)), len(content))
+var (
+	ErrUnmarshal = errors.New("unmarshal error")
+	ErrGeneral   = errors.New("weird error")
+)
+
+func MockContentResponse(content string) string {
+	response := fmt.Sprintf(`{"Content" : "%s", "size": %d, "encoding":"base64"}`, base64.StdEncoding.EncodeToString([]byte(content)), len(content))
 	return response
 }
 
-type mockContentProvider struct {
-	content string
-	err     error
+type MockContentProvider struct {
+	Content string
+	Err     error
 }
 
-func (mockContentProvider *mockContentProvider) getContents(path string) (string, error) {
-	return mockContentProvider.content, mockContentProvider.err
+func (mockContentProvider *MockContentProvider) GetContents(path string) (string, error) {
+	return mockContentProvider.Content, mockContentProvider.Err
 }
-
-var (
-	errUnmarshal = errors.New("unmarshal error")
-	errGeneral   = errors.New("weird error")
-)
 
 // RoundTripFunc
 type RoundTripFunc func(req *http.Request) *http.Response
@@ -106,7 +112,7 @@ func NewTestClient(fn RoundTripFunc) *http.Client {
 		Transport: RoundTripFunc(fn),
 	}
 }
-func newTestResponse(status int, response string) *http.Response {
+func NewTestResponse(status int, response string) *http.Response {
 	return &http.Response{
 		StatusCode: status,
 		Body:       io.NopCloser(bytes.NewBufferString(response)),
@@ -114,7 +120,7 @@ func newTestResponse(status int, response string) *http.Response {
 		Header: make(http.Header),
 	}
 }
-func getBodyJson(req *http.Request) map[string]interface{} {
+func GetBodyJson(req *http.Request) map[string]interface{} {
 	result := make(map[string]interface{})
 
 	reqBytes, _ := io.ReadAll(req.Body)
@@ -129,11 +135,11 @@ type evaluation struct {
 	responseFn  RoundTripFunc
 }
 
-type mockClientProvider struct {
+type MockClientProvider struct {
 	evaluations map[string]evaluation
 }
 
-func (mockClientProvider *mockClientProvider) overrideResponseFn(action string, ovveride func(req *http.Request, defaultFn RoundTripFunc) *http.Response) {
+func (mockClientProvider *MockClientProvider) OverrideResponseFn(action string, ovveride func(req *http.Request, defaultFn RoundTripFunc) *http.Response) {
 	eval := mockClientProvider.evaluations[action]
 	saved := eval.responseFn
 	eval.responseFn = func(req *http.Request) *http.Response {
@@ -142,14 +148,14 @@ func (mockClientProvider *mockClientProvider) overrideResponseFn(action string, 
 	mockClientProvider.evaluations[action] = eval
 }
 
-func DefaultMockClientProvider() *mockClientProvider {
+func DefaultMockClientProvider() *MockClientProvider {
 	defaultEvaluations := map[string]evaluation{
 		"GET_TOKEN": {
 			func(req *http.Request) bool {
 				return strings.HasPrefix(req.URL.String(), "https://api.github.com/app/installations/")
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(201, tokenResponse)
+				return NewTestResponse(201, tokenResponse)
 			},
 		},
 		"GET_ATC_CONFIG": {
@@ -157,7 +163,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return strings.HasSuffix(req.URL.String(), "atc.yaml")
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(404, "not found")
+				return NewTestResponse(404, "not found")
 			},
 		},
 		"GET_OLD_VERSION_MAVEN": {
@@ -169,7 +175,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return matched
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(200, mockContentResponse(oldPomXml))
+				return NewTestResponse(200, MockContentResponse(oldPomXml))
 			},
 		},
 		"GET_NEW_VERSION_MAVEN": {
@@ -181,7 +187,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return matched
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(200, mockContentResponse(newPomXml))
+				return NewTestResponse(200, MockContentResponse(newPomXml))
 			},
 		},
 		"GET_OLD_VERSION_GRADLE": {
@@ -193,7 +199,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return matched
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(200, mockContentResponse(oldGradle))
+				return NewTestResponse(200, MockContentResponse(oldGradle))
 			},
 		},
 		"GET_NEW_VERSION_GRADLE": {
@@ -205,7 +211,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return matched
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(200, mockContentResponse(newGradle))
+				return NewTestResponse(200, MockContentResponse(newGradle))
 			},
 		},
 		"GET_OLD_VERSION_NPM": {
@@ -217,7 +223,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return matched
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(200, mockContentResponse(oldNpm))
+				return NewTestResponse(200, MockContentResponse(oldNpm))
 			},
 		},
 		"GET_NEW_VERSION_NPM": {
@@ -229,7 +235,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return matched
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(200, mockContentResponse(newNpm))
+				return NewTestResponse(200, MockContentResponse(newNpm))
 			},
 		},
 		"GET_OLD_VERSION_FLUTTER": {
@@ -241,7 +247,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return matched
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(200, mockContentResponse(oldFlutter))
+				return NewTestResponse(200, MockContentResponse(oldFlutter))
 			},
 		},
 		"GET_NEW_VERSION_FLUTTER": {
@@ -253,7 +259,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return matched
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(200, mockContentResponse(newFlutter))
+				return NewTestResponse(200, MockContentResponse(newFlutter))
 			},
 		},
 		"GET_OLD_VERSION_USERCONF": {
@@ -265,7 +271,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return matched
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(200, mockContentResponse(oldUserConf))
+				return NewTestResponse(200, MockContentResponse(oldUserConf))
 			},
 		},
 		"GET_NEW_VERSION_USERCONF": {
@@ -277,7 +283,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return matched
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(200, mockContentResponse(newUserConf))
+				return NewTestResponse(200, MockContentResponse(newUserConf))
 			},
 		},
 		"ADD_TAG": {
@@ -286,9 +292,9 @@ func DefaultMockClientProvider() *mockClientProvider {
 			},
 			func(req *http.Request) *http.Response {
 				log.Println("ADD_TAG req.Body: ", req.Body)
-				jsonMap := getBodyJson(req)
+				jsonMap := GetBodyJson(req)
 
-				return newTestResponse(201, fmt.Sprintf(`{"tag":"%s", "sha":"940bd336248efae0f9ee5bc7b2d5c985887b16ac"}`, jsonMap["tag"]))
+				return NewTestResponse(201, fmt.Sprintf(`{"tag":"%s", "sha":"940bd336248efae0f9ee5bc7b2d5c985887b16ac"}`, jsonMap["tag"]))
 			},
 		},
 		"ADD_REF": {
@@ -296,7 +302,7 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return strings.Contains(req.URL.String(), "/git/refs")
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(201, `{}`)
+				return NewTestResponse(201, `{}`)
 			},
 		},
 		"ADD_COMMENT": {
@@ -308,14 +314,14 @@ func DefaultMockClientProvider() *mockClientProvider {
 				return matched
 			},
 			func(req *http.Request) *http.Response {
-				return newTestResponse(201, `{}`)
+				return NewTestResponse(201, `{}`)
 			},
 		},
 	}
-	return &mockClientProvider{defaultEvaluations}
+	return &MockClientProvider{defaultEvaluations}
 }
 
-func (mockClientProvider *mockClientProvider) Get(token string, ctx context.Context) *github.Client {
+func (mockClientProvider *MockClientProvider) Get(token string, ctx context.Context) *github.Client {
 	client := NewTestClient(func(req *http.Request) *http.Response {
 		for _, eval := range mockClientProvider.evaluations {
 			if eval.conditionFn(req) {
@@ -323,7 +329,7 @@ func (mockClientProvider *mockClientProvider) Get(token string, ctx context.Cont
 				return eval.responseFn(req)
 			}
 		}
-		return newTestResponse(404, "not found")
+		return NewTestResponse(404, "not found")
 	})
 
 	return github.NewClient(client)

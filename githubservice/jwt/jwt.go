@@ -1,4 +1,4 @@
-package githubservice
+package jwt
 
 import (
 	"crypto/x509"
@@ -13,11 +13,11 @@ import (
 )
 
 var (
-	errNoPemEnv = errors.New("path to .pem is empty")
+	ErrNoPemEnv = errors.New("path to .pem is empty")
 	errNoPem    = errors.New("no .pem file")
 )
 
-func getJwt(pemData []byte) (string, error) {
+func GetJwt(pemData []byte) (string, error) {
 	block, _ := pem.Decode(pemData)
 	if block == nil {
 		return "", errNoPem
