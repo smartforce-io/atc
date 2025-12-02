@@ -47,13 +47,11 @@ runs:
     - name: Set up Go
       uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
       with:
-        go-version-file: 'go.mod'
+        go-version-file: ${{ github.action_path }}/go.mod
 
     - name: Build Automated Tag Creator
       shell: bash
-      run: |
-        go build -o atc ./
-        chmod +x atc
+      run: go build -o "${{ github.action_path }}/atc" ./
 
     - name: Run Automated Tag Creator
       shell: bash
@@ -66,5 +64,4 @@ runs:
         TEMPLATE: ${{ inputs.template }}
         REGEX: ${{ inputs.regex }}
         CI_MODE: true
-      run: |
-        ./atc
+      run: ${{ github.action_path }}/atc
