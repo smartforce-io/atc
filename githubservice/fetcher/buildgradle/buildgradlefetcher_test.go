@@ -1,4 +1,4 @@
-package buildgrandle
+package buildgradle
 
 import (
 	"errors"

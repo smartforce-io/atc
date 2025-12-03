@@ -220,7 +220,7 @@ func TestPushActionBasic(t *testing.T) {
 		message = fmt.Sprintf("%v", j["body"])
 		return defaultFn(req)
 	})
-	PushAction(&p, mockClientProviderPtr)
+	ActionPush(&p, mockClientProviderPtr)
 
 	if !commentCreated {
 		t.Errorf("Comment wasn't created\n")
@@ -305,7 +305,7 @@ regexstr: "vers: (.+)"`, test.confString)
 		receivedUrl = ""
 		message = ""
 
-		PushAction(&p, mockClientProviderPtr)
+		ActionPush(&p, mockClientProviderPtr)
 
 		matched, err := regexp.MatchString(test.expectedUrlPath, receivedUrl)
 		if err != nil {
@@ -355,7 +355,7 @@ func TestMissedOldNewVersionNoConfig(t *testing.T) {
 		return provider.NewTestResponse(404, "not found")
 	})
 
-	PushAction(&p, mockClientProviderPtr)
+	ActionPush(&p, mockClientProviderPtr)
 
 	if !commentCreated {
 		t.Errorf("Comment wasn't created\n")
@@ -425,7 +425,7 @@ branch: main`, "GET_OLD_VERSION_USERCONF", ".atc.yaml don't have regexstr for no
 		})
 		message = ""
 
-		PushAction(&p, mockClientProviderPtr)
+		ActionPush(&p, mockClientProviderPtr)
 
 		if !commentCreated {
 			t.Errorf("Comment should not be created\n")
@@ -472,7 +472,7 @@ func TestMissedNewVersionNoConfig(t *testing.T) {
 		return provider.NewTestResponse(404, "not found")
 	})
 
-	PushAction(&p, mockClientProviderPtr)
+	ActionPush(&p, mockClientProviderPtr)
 
 	if !commentCreated {
 		t.Errorf("Comment wasn't created\n")
@@ -542,7 +542,7 @@ branch: main`, "GET_NEW_VERSION_USERCONF", ".atc.yaml don't have regexstr for no
 		})
 		message = ""
 
-		PushAction(&p, mockClientProviderPtr)
+		ActionPush(&p, mockClientProviderPtr)
 
 		if !commentCreated {
 			t.Errorf("Comment should not be created\n")
@@ -604,7 +604,7 @@ branch: main`, test.confString)
 		message = ""
 		tag = ""
 
-		PushAction(&p, mockClientProviderPtr)
+		ActionPush(&p, mockClientProviderPtr)
 
 		if tag != test.expectedTag {
 			t.Errorf("Wrong tag! expected: %s, got: %s\n", test.expectedTag, tag)
@@ -664,7 +664,7 @@ branch: main`, test.confString)
 
 		sha = ""
 
-		PushAction(&p, mockClientProviderPtr)
+		ActionPush(&p, mockClientProviderPtr)
 
 		if sha != test.expectedSha {
 			if message != errorMessage {
@@ -717,7 +717,7 @@ regexstr: "vers: (.+)"`, test.confString)
 
 		message = ""
 
-		PushAction(&p, mockClientProviderPtr)
+		ActionPush(&p, mockClientProviderPtr)
 
 		if message != test.expectedMessage {
 			if message != errorMessage && message != errorMessageEmtry {
@@ -772,7 +772,7 @@ branch: main
 
 		message = ""
 
-		PushAction(&p, mockClientProviderPtr)
+		ActionPush(&p, mockClientProviderPtr)
 
 		if message != test.expectedMessage {
 			if message != errorMessage && message != errorMessageEmtry {

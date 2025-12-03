@@ -54,7 +54,7 @@ func (api *AtcApiServer) webhook(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if strings.HasPrefix(p.GetRef(), "refs/heads/") {
-			go push.PushAction(p, &provider.GithubClientProvider{}) //it's not clear who is resposible for DI
+			go push.ActionPush(p, &provider.GithubClientProvider{}) //it's not clear who is resposible for DI
 		}
 		w.WriteHeader(http.StatusOK)
 	default:

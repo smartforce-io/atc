@@ -1,0 +1,67 @@
+name: 'Automated Tag Creator '
+description: 'Track version changes in local files for automatic tag creation'
+author: 'smartforce-io'
+
+inputs:
+  type:
+    description: 'File to track version of the app'
+    required: true
+  secrets:
+    description: 'Token to access repository'
+    required: true
+  behavior:
+    description: 'Determines which commit to read the version from.
+  Use "after" (default) to read version from the current commit,
+  or "before" to read version from the previous commit'
+    required: false
+    default: after
+  template:
+    description: 'The default template is "v{{.Version}}'
+    required: false
+    default: v{{.Version}}
+  regex:
+    description: 'Create regex string if you are not using the default ATC package manager. 
+    The regexstr must contain one group with version number.'
+    required: false
+    default: 'version: (.+)'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check OS
+      shell: bash
+      run: |
+        if [[ "${{ runner.os }}" != "Linux" ]]; then
+          echo "::error::This action can only be run on Linux"
+          exit 1
+        fi
+
+    - name: Check type file
+      shell: bash
+      run: |
+        if [[ ! -f "${{ inputs.type }}" ]]; then
+          echo "::error::Config file not found: ${{ inputs.type }}"
+        fi
+        echo "Config file found: ${{ inputs.type }}"
+
+    - name: Set up Go
+      uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
+      with:
+        go-version-file: ${{ github.action_path }}/go.mod
+
+    - name: Build Automated Tag Creator
+      shell: bash
+      run: go build -C "${{ github.action_path }}" -o atc
+
+    - name: Run Automated Tag Creator
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.secrets }}
+        FILE_TYPE: ${{ inputs.type }}
+        COMMIT_SHA: ${{ github.sha }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        BEHAVIOR: ${{ inputs.behavior }}
+        TEMPLATE: ${{ inputs.template }}
+        REGEX: ${{ inputs.regex }}
+        CI_MODE: true
+      run: ${{ github.action_path }}/atc

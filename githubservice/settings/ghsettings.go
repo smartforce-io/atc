@@ -12,7 +12,7 @@ import (
 
 const (
 	BehaviorBefore = "before"
-	behaviorAfter  = "after"
+	BehaviorAfter  = "after"
 	pathPrefix     = "/"
 )
 
@@ -31,14 +31,14 @@ type AtcSettings struct {
 func validateSettings(settings *AtcSettings) error {
 	//check settins to "" and use default value:
 	if settings.Behavior == "" {
-		settings.Behavior = behaviorAfter
+		settings.Behavior = BehaviorAfter
 	}
 	if settings.Template == "" {
 		settings.Template = "v{{.Version}}"
 	}
 
 	//check Behavior:
-	if strings.ToLower(settings.Behavior) != behaviorAfter && strings.ToLower(settings.Behavior) != BehaviorBefore {
+	if strings.ToLower(settings.Behavior) != BehaviorAfter && strings.ToLower(settings.Behavior) != BehaviorBefore {
 		return errors.New(`error config file .atc.yaml: behavior doesn't contain "before" or "after"`)
 	}
 	//check Template:
