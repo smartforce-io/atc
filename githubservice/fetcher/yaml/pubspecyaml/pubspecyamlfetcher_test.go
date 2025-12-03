@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/smartforce-io/atc/githubservice/fetcher/yaml"
 	"github.com/smartforce-io/atc/githubservice/provider"
 
 	"github.com/smartforce-io/atc/githubservice/fetcher"
@@ -17,12 +18,12 @@ name: newtify
 description: >-
 `
 
-var failingPubspecYamlFetcherUnmarshal = func(content []byte, pubspecyaml *PubspecYaml) error {
+var failingPubspecYamlFetcherUnmarshal = func(content []byte, pubspecyaml *yaml.Yaml) error {
 	return provider.ErrUnmarshal
 }
 
 func TestPubspecYamlFetcherBasic(t *testing.T) {
-	f := Fetcher{}
+	f := yaml.Fetcher{}
 
 	cp := provider.MockContentProvider{Content: basicPubspecYaml}
 
@@ -54,8 +55,8 @@ version: 1.2.2`, `1.2.2`},
 		{``, ""},
 	}
 	for _, test := range tests {
-		pubspecyaml := &PubspecYaml{}
-		err := unmarshalPubspecYaml([]byte(test.content), pubspecyaml)
+		pubspecyaml := &yaml.Yaml{}
+		err := yaml.UnmarshalYaml([]byte(test.content), pubspecyaml)
 		if err != nil {
 			t.Errorf("Error unmarshal: %v", err)
 			if pubspecyaml.Version != test.version {
@@ -70,11 +71,11 @@ func TestUnmarshalErrorPubspecYaml(t *testing.T) {
 		content string
 		err     string
 	}{
-		{`v1.1`, "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `v1.1` into pubspecyaml.PubspecYaml"},
+		{`v1.1`, "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `v1.1` into yaml.Yaml"},
 	}
 	for _, test := range tests {
-		pubspecyaml := &PubspecYaml{}
-		if err := unmarshalPubspecYaml([]byte(test.content), pubspecyaml); fmt.Sprintf("%s", err) != test.err {
+		pubspecyaml := &yaml.Yaml{}
+		if err := yaml.UnmarshalYaml([]byte(test.content), pubspecyaml); fmt.Sprintf("%s", err) != test.err {
 			t.Errorf("Error for content: %s\nexpected err: %v, got err: %v", test.content, test.err, err)
 		}
 	}
@@ -105,19 +106,13 @@ func TestErrorGetVersionPubspecYaml(t *testing.T) {
 }
 
 func TestPubspecYamlFetcherUnmarshalError(t *testing.T) {
-	f := Fetcher{}
-
-	unmarshalPubspecYamlCopy := unmarshalPubspecYaml
-
-	unmarshalPubspecYaml = failingPubspecYamlFetcherUnmarshal
-
+	f := yaml.Fetcher{}
+	unmarshalPubspecYamlCopy := yaml.UnmarshalYaml
+	yaml.UnmarshalYaml = failingPubspecYamlFetcherUnmarshal
 	cp := provider.MockContentProvider{}
-
 	_, err := f.GetVersion(&cp, settings.AtcSettings{Path: "pubspec.yaml"})
-
 	if !errors.Is(err, provider.ErrUnmarshal) {
 		t.Errorf("Invalid error, Got %v, wanted %v", err, provider.ErrUnmarshal)
 	}
-
-	unmarshalPubspecYaml = unmarshalPubspecYamlCopy
+	yaml.UnmarshalYaml = unmarshalPubspecYamlCopy
 }
